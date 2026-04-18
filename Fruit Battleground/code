@@ -15,8 +15,8 @@ local NoclipConnection = nil
 local AutoKeybindActive = false
 local InfiniteSoruActive = false
 local InfiniteSoruConnection = nil
-local KeybindDelay = 0.15
-local KeybindHoldTime = 0.05
+local KeybindDelay = 1
+local KeybindHoldTime = 0.5
 local CurrentTransparency = 0
 local SettingsOpen = false
 local StayPositionActive = false
@@ -511,7 +511,7 @@ function buildMainGui()
     CloseBtn.Position = UDim2.new(1, -30, 0.5, -10)
     CloseBtn.Size = UDim2.new(0, 20, 0, 20)
     CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.Text = "✕"
+    CloseBtn.Text = "✖️"
     CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     CloseBtn.TextSize = 12
     makeCorner(CloseBtn, 4)
