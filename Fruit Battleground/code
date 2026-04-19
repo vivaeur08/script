@@ -15,1932 +15,612 @@ local NoclipConnection = nil
 local AutoKeybindActive = false
 local InfiniteSoruActive = false
 local InfiniteSoruConnection = nil
-local KeybindDelay = 1
-local KeybindHoldTime = 0.5
+local KeybindDelay = 0.15
+local KeybindHoldTime = 0.05
 local CurrentTransparency = 0
 local SettingsOpen = false
 local StayPositionActive = false
 local StayPositionCFrame = nil
 local StayPositionConnection = nil
 local IsMinimized = false
+local UltimateFarmActive = false
 
 local Themes = {
     ["Noir & Gris"] = {
-        bg = Color3.fromRGB(15, 15, 15),
-        titleBar = Color3.fromRGB(20, 20, 20),
-        sidebar = Color3.fromRGB(18, 18, 18),
-        content = Color3.fromRGB(25, 25, 25),
-        card = Color3.fromRGB(30, 30, 30),
-        cardInner = Color3.fromRGB(20, 20, 20),
-        stroke = Color3.fromRGB(80, 80, 80),
-        strokeLight = Color3.fromRGB(55, 55, 55),
-        text = Color3.fromRGB(220, 220, 220),
-        textDim = Color3.fromRGB(150, 150, 150),
-        accent = Color3.fromRGB(100, 180, 255),
-        sidebarActive = Color3.fromRGB(45, 45, 55),
-        sidebarBtn = Color3.fromRGB(25, 25, 25),
-        hoverBtn = Color3.fromRGB(40, 40, 50),
-        input = Color3.fromRGB(20, 20, 20),
-        separator = Color3.fromRGB(50, 50, 50),
+        bg = Color3.fromRGB(18, 18, 22), titleBar = Color3.fromRGB(24, 24, 30), sidebar = Color3.fromRGB(20, 20, 26),
+        content = Color3.fromRGB(28, 28, 34), card = Color3.fromRGB(34, 34, 42), cardInner = Color3.fromRGB(22, 22, 28),
+        stroke = Color3.fromRGB(60, 60, 72), strokeLight = Color3.fromRGB(48, 48, 58), text = Color3.fromRGB(225, 225, 230),
+        textDim = Color3.fromRGB(140, 140, 155), accent = Color3.fromRGB(120, 160, 220), sidebarActive = Color3.fromRGB(40, 42, 54),
+        sidebarBtn = Color3.fromRGB(26, 26, 32), hoverBtn = Color3.fromRGB(44, 44, 56), input = Color3.fromRGB(20, 20, 26),
+        separator = Color3.fromRGB(45, 45, 55), knob = Color3.fromRGB(180, 185, 195), knobCenter = Color3.fromRGB(120, 160, 220),
     },
     ["Violet Néon"] = {
-        bg = Color3.fromRGB(12, 8, 20),
-        titleBar = Color3.fromRGB(18, 10, 30),
-        sidebar = Color3.fromRGB(14, 8, 25),
-        content = Color3.fromRGB(20, 12, 35),
-        card = Color3.fromRGB(25, 15, 40),
-        cardInner = Color3.fromRGB(18, 10, 30),
-        stroke = Color3.fromRGB(130, 60, 220),
-        strokeLight = Color3.fromRGB(90, 40, 160),
-        text = Color3.fromRGB(230, 210, 255),
-        textDim = Color3.fromRGB(160, 130, 200),
-        accent = Color3.fromRGB(180, 80, 255),
-        sidebarActive = Color3.fromRGB(50, 25, 80),
-        sidebarBtn = Color3.fromRGB(20, 12, 35),
-        hoverBtn = Color3.fromRGB(40, 20, 65),
-        input = Color3.fromRGB(15, 8, 28),
-        separator = Color3.fromRGB(80, 40, 130),
+        bg = Color3.fromRGB(8, 4, 18), titleBar = Color3.fromRGB(14, 6, 28), sidebar = Color3.fromRGB(10, 4, 22),
+        content = Color3.fromRGB(16, 8, 32), card = Color3.fromRGB(22, 10, 44), cardInner = Color3.fromRGB(12, 5, 26),
+        stroke = Color3.fromRGB(160, 50, 255), strokeLight = Color3.fromRGB(110, 30, 200), text = Color3.fromRGB(240, 220, 255),
+        textDim = Color3.fromRGB(170, 130, 220), accent = Color3.fromRGB(200, 60, 255), sidebarActive = Color3.fromRGB(45, 15, 90),
+        sidebarBtn = Color3.fromRGB(14, 6, 30), hoverBtn = Color3.fromRGB(50, 18, 100), input = Color3.fromRGB(10, 4, 22),
+        separator = Color3.fromRGB(100, 30, 180), knob = Color3.fromRGB(200, 60, 255), knobCenter = Color3.fromRGB(255, 100, 255),
     },
     ["Vert & Noir"] = {
-        bg = Color3.fromRGB(8, 15, 10),
-        titleBar = Color3.fromRGB(10, 20, 14),
-        sidebar = Color3.fromRGB(8, 18, 12),
-        content = Color3.fromRGB(12, 25, 16),
-        card = Color3.fromRGB(15, 30, 20),
-        cardInner = Color3.fromRGB(10, 20, 14),
-        stroke = Color3.fromRGB(50, 180, 80),
-        strokeLight = Color3.fromRGB(35, 120, 55),
-        text = Color3.fromRGB(210, 255, 220),
-        textDim = Color3.fromRGB(130, 200, 150),
-        accent = Color3.fromRGB(80, 255, 120),
-        sidebarActive = Color3.fromRGB(25, 55, 35),
-        sidebarBtn = Color3.fromRGB(12, 25, 16),
-        hoverBtn = Color3.fromRGB(20, 45, 28),
-        input = Color3.fromRGB(8, 18, 12),
-        separator = Color3.fromRGB(40, 100, 55),
+        bg = Color3.fromRGB(4, 12, 6), titleBar = Color3.fromRGB(6, 18, 10), sidebar = Color3.fromRGB(4, 14, 8),
+        content = Color3.fromRGB(8, 22, 12), card = Color3.fromRGB(10, 28, 16), cardInner = Color3.fromRGB(6, 16, 10),
+        stroke = Color3.fromRGB(30, 200, 70), strokeLight = Color3.fromRGB(20, 140, 50), text = Color3.fromRGB(200, 255, 210),
+        textDim = Color3.fromRGB(100, 200, 130), accent = Color3.fromRGB(50, 255, 100), sidebarActive = Color3.fromRGB(15, 50, 25),
+        sidebarBtn = Color3.fromRGB(6, 18, 10), hoverBtn = Color3.fromRGB(18, 55, 28), input = Color3.fromRGB(4, 14, 8),
+        separator = Color3.fromRGB(25, 120, 45), knob = Color3.fromRGB(50, 255, 100), knobCenter = Color3.fromRGB(100, 255, 150),
     },
     ["Liquid Glass"] = {
-        bg = Color3.fromRGB(30, 35, 45),
-        titleBar = Color3.fromRGB(40, 45, 58),
-        sidebar = Color3.fromRGB(35, 40, 52),
-        content = Color3.fromRGB(45, 50, 65),
-        card = Color3.fromRGB(55, 60, 78),
-        cardInner = Color3.fromRGB(40, 45, 60),
-        stroke = Color3.fromRGB(120, 140, 180),
-        strokeLight = Color3.fromRGB(90, 110, 150),
-        text = Color3.fromRGB(230, 240, 255),
-        textDim = Color3.fromRGB(160, 175, 200),
-        accent = Color3.fromRGB(140, 180, 255),
-        sidebarActive = Color3.fromRGB(60, 70, 95),
-        sidebarBtn = Color3.fromRGB(42, 48, 62),
-        hoverBtn = Color3.fromRGB(65, 75, 100),
-        input = Color3.fromRGB(35, 40, 55),
-        separator = Color3.fromRGB(80, 95, 130),
+        bg = Color3.fromRGB(35, 40, 55), titleBar = Color3.fromRGB(45, 52, 72), sidebar = Color3.fromRGB(38, 44, 62),
+        content = Color3.fromRGB(50, 58, 80), card = Color3.fromRGB(60, 68, 95), cardInner = Color3.fromRGB(45, 52, 75),
+        stroke = Color3.fromRGB(130, 155, 210), strokeLight = Color3.fromRGB(100, 120, 175), text = Color3.fromRGB(235, 240, 255),
+        textDim = Color3.fromRGB(170, 185, 220), accent = Color3.fromRGB(140, 190, 255), sidebarActive = Color3.fromRGB(65, 78, 110),
+        sidebarBtn = Color3.fromRGB(45, 52, 72), hoverBtn = Color3.fromRGB(72, 85, 120), input = Color3.fromRGB(40, 48, 68),
+        separator = Color3.fromRGB(90, 110, 155), knob = Color3.fromRGB(200, 220, 255), knobCenter = Color3.fromRGB(140, 190, 255),
     },
 }
 
 local CurrentThemeName = "Noir & Gris"
 local CurrentTheme = Themes[CurrentThemeName]
+local ThemedElements = {bg={},titleBar={},sidebar={},content={},card={},cardInner={},stroke={},strokeLight={},text={},textDim={},accent={},sidebarActive={},sidebarBtn={},input={},separator={}}
 
-local ThemedElements = {
-    bg = {}, titleBar = {}, sidebar = {}, content = {}, card = {}, cardInner = {},
-    stroke = {}, strokeLight = {}, text = {}, textDim = {}, accent = {},
-    sidebarActive = {}, sidebarBtn = {}, input = {}, separator = {},
-}
-
-local function registerThemed(category, element, property)
-    table.insert(ThemedElements[category], {element = element, property = property or "BackgroundColor3"})
-end
+local function registerThemed(c, e, p) table.insert(ThemedElements[c], {element=e, property=p or "BackgroundColor3"}) end
 
 local SETTINGS_FOLDER = "FruitHUB"
 local SETTINGS_FILE = SETTINGS_FOLDER .. "/settings.json"
 
 local function saveSettings()
     pcall(function()
-        if not isfolder(SETTINGS_FOLDER) then
-            makefolder(SETTINGS_FOLDER)
-        end
-        local themeToSave = "Noir & Gris"
-        if CurrentThemeName and type(CurrentThemeName) == "string" and Themes[CurrentThemeName] then
-            themeToSave = CurrentThemeName
-        end
-        local data = {
-            theme = themeToSave,
-            transparency = CurrentTransparency or 0
-        }
-        writefile(SETTINGS_FILE, HttpService:JSONEncode(data))
+        if not isfolder(SETTINGS_FOLDER) then makefolder(SETTINGS_FOLDER) end
+        local t = "Noir & Gris"
+        if CurrentThemeName and type(CurrentThemeName) == "string" and Themes[CurrentThemeName] then t = CurrentThemeName end
+        writefile(SETTINGS_FILE, HttpService:JSONEncode({theme=t, transparency=CurrentTransparency or 0}))
     end)
 end
 
 local function loadSettings()
-    local success, result = pcall(function()
-        if isfile(SETTINGS_FILE) then
-            local raw = readfile(SETTINGS_FILE)
-            return HttpService:JSONDecode(raw)
+    local s,r = pcall(function() if isfile(SETTINGS_FILE) then return HttpService:JSONDecode(readfile(SETTINGS_FILE)) end return nil end)
+    if s and r then return r end return nil
+end
+
+local ss = loadSettings()
+if ss then
+    if ss.theme and type(ss.theme) == "string" and Themes[ss.theme] then CurrentThemeName = ss.theme CurrentTheme = Themes[CurrentThemeName] end
+    if ss.transparency and type(ss.transparency) == "number" then CurrentTransparency = math.clamp(ss.transparency, 0, 1) end
+else saveSettings() end
+
+local function applyTheme(tn, d)
+    d = d or 0.4
+    if not tn or not Themes[tn] then return end
+    CurrentThemeName = tn CurrentTheme = Themes[tn]
+    for cat, els in pairs(ThemedElements) do local col = CurrentTheme[cat]
+        if col then for _, dt in ipairs(els) do if dt.element and dt.element.Parent then
+            local p = {} p[dt.property] = col
+            TweenService:Create(dt.element, TweenInfo.new(d, Enum.EasingStyle.Quad), p):Play()
+        end end end
+    end
+    task.delay(0.1, saveSettings)
+end
+
+local function applyTransparency(v)
+    CurrentTransparency = math.clamp(v, 0, 1)
+    local lvl = {bg=1, content=0.8, sidebar=0.7, titleBar=0.5, card=0.6}
+    for cat, m in pairs(lvl) do for _, dt in ipairs(ThemedElements[cat]) do
+        if dt.element and dt.element.Parent and dt.property == "BackgroundColor3" then
+            TweenService:Create(dt.element, TweenInfo.new(0.2), {BackgroundTransparency = v * m}):Play()
         end
-        return nil
-    end)
-    if success and result then
-        return result
-    end
-    return nil
+    end end
+    task.delay(0.1, saveSettings)
 end
 
-local savedSettings = loadSettings()
-
-if savedSettings then
-    if savedSettings.theme and type(savedSettings.theme) == "string" and Themes[savedSettings.theme] then
-        CurrentThemeName = savedSettings.theme
-        CurrentTheme = Themes[CurrentThemeName]
-    end
-    if savedSettings.transparency and type(savedSettings.transparency) == "number" then
-        CurrentTransparency = math.clamp(savedSettings.transparency, 0, 1)
-    end
-else
-    saveSettings()
+local function detectCurrentSea()
+    local n = workspace:FindFirstChild("NPCs")
+    if n then if n:FindFirstChild("Charlie") then return 2 end if n:FindFirstChild("Scientist") then return 1 end end
+    return 3
 end
 
-local function applyTheme(themeName, duration)
-    duration = duration or 0.4
-    if not themeName or not Themes[themeName] then return end
-    CurrentThemeName = themeName
-    CurrentTheme = Themes[themeName]
-    for category, elements in pairs(ThemedElements) do
-        local color = CurrentTheme[category]
-        if color then
-            for _, data in ipairs(elements) do
-                if data.element and data.element.Parent then
-                    local props = {}
-                    props[data.property] = color
-                    TweenService:Create(data.element, TweenInfo.new(duration, Enum.EasingStyle.Quad), props):Play()
-                end
-            end
-        end
-    end
-    task.delay(0.1, function()
-        saveSettings()
-    end)
-end
+local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name = "HubMain" ScreenGui.Parent = game.CoreGui ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling ScreenGui.ResetOnSpawn = false
 
-local function applyTransparency(value)
-    CurrentTransparency = math.clamp(value, 0, 1)
-    for _, data in ipairs(ThemedElements.bg) do
-        if data.element and data.element.Parent and data.property == "BackgroundColor3" then
-            TweenService:Create(data.element, TweenInfo.new(0.2), {BackgroundTransparency = value}):Play()
-        end
-    end
-    for _, data in ipairs(ThemedElements.content) do
-        if data.element and data.element.Parent and data.property == "BackgroundColor3" then
-            TweenService:Create(data.element, TweenInfo.new(0.2), {BackgroundTransparency = value * 0.8}):Play()
-        end
-    end
-    for _, data in ipairs(ThemedElements.sidebar) do
-        if data.element and data.element.Parent and data.property == "BackgroundColor3" then
-            TweenService:Create(data.element, TweenInfo.new(0.2), {BackgroundTransparency = value * 0.7}):Play()
-        end
-    end
-    for _, data in ipairs(ThemedElements.titleBar) do
-        if data.element and data.element.Parent and data.property == "BackgroundColor3" then
-            TweenService:Create(data.element, TweenInfo.new(0.2), {BackgroundTransparency = value * 0.5}):Play()
-        end
-    end
-    for _, data in ipairs(ThemedElements.card) do
-        if data.element and data.element.Parent and data.property == "BackgroundColor3" then
-            TweenService:Create(data.element, TweenInfo.new(0.2), {BackgroundTransparency = value * 0.6}):Play()
-        end
-    end
-    task.delay(0.1, function()
-        saveSettings()
-    end)
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "HubMain"
-ScreenGui.Parent = game.CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.ResetOnSpawn = false
-
-local function makeCorner(parent, radius)
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, radius or 6)
-    c.Parent = parent
-    return c
-end
-
-local function makeStroke(parent, color, thickness, category)
-    local s = Instance.new("UIStroke")
-    s.Color = color or CurrentTheme.stroke
-    s.Thickness = thickness or 1
-    s.Parent = parent
-    if category then registerThemed(category, s, "Color") end
-    return s
-end
-
-local function tween(obj, props, duration)
-    TweenService:Create(obj, TweenInfo.new(duration or 0.2), props):Play()
-end
-
-local function hoverEffect(btn, normalColor, hoverColor)
-    btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = hoverColor}, 0.15) end)
-    btn.MouseLeave:Connect(function() tween(btn, {BackgroundColor3 = normalColor}, 0.15) end)
-end
+local function makeCorner(p, r) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, r or 8) c.Parent = p return c end
+local function makeStroke(p, col, th, cat) local s = Instance.new("UIStroke") s.Color = col or CurrentTheme.stroke s.Thickness = th or 1 s.Parent = p if cat then registerThemed(cat, s, "Color") end return s end
+local function tween(o, pr, d) TweenService:Create(o, TweenInfo.new(d or 0.2, Enum.EasingStyle.Quint), pr):Play() end
+local function hoverEffect(b, n, h) b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=h}, 0.2) end) b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=n}, 0.2) end) end
 
 local function getMyCharacter()
-    local char = nil
-    local cf = workspace:FindFirstChild("Characters")
-    if cf then
-        local pf = cf:FindFirstChild("Players")
-        if pf then char = pf:FindFirstChild(LocalPlayer.Name) end
-    end
-    if not char then char = LocalPlayer.Character end
-    return char
+    local c local cf = workspace:FindFirstChild("Characters")
+    if cf then local pf = cf:FindFirstChild("Players") if pf then c = pf:FindFirstChild(LocalPlayer.Name) end end
+    if not c then c = LocalPlayer.Character end return c
 end
 
-local function teleportTo(x, y, z)
-    local myChar = getMyCharacter()
-    if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-        myChar.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
-        return true
-    end
-    return false
-end
+local function teleportTo(x, y, z) local mc = getMyCharacter() if mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame = CFrame.new(x, y, z) return true end return false end
 
 local function destroyAll()
-    NoclipEnabled = false
-    AutoKeybindActive = false
-    InfiniteSoruActive = false
-    StayPositionActive = false
+    NoclipEnabled = false AutoKeybindActive = false InfiniteSoruActive = false StayPositionActive = false UltimateFarmActive = false
     if NoclipConnection then NoclipConnection:Disconnect() end
     if InfiniteSoruConnection then InfiniteSoruConnection:Disconnect() end
     if StayPositionConnection then StayPositionConnection:Disconnect() end
     ScreenGui:Destroy()
 end
 
-local function simulateKeyAndClick(keyCode)
-    VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+local function simulateKeyAndClick(kc)
+    VirtualInputManager:SendKeyEvent(true, kc, false, game)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
     task.wait(KeybindHoldTime)
     VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-    VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    VirtualInputManager:SendKeyEvent(false, kc, false, game)
 end
 
-local LoadingFrame = Instance.new("Frame")
-LoadingFrame.Name = "Loading"
-LoadingFrame.Parent = ScreenGui
-LoadingFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
-LoadingFrame.Position = UDim2.new(0.5, -175, 0.5, -60)
-LoadingFrame.Size = UDim2.new(0, 350, 0, 120)
-makeCorner(LoadingFrame, 10)
-makeStroke(LoadingFrame, Color3.fromRGB(80, 80, 80), 1.5)
+local function getBackpackAttacks()
+    local attacks = {}
+    local bp = LocalPlayer:FindFirstChild("Backpack")
+    if not bp then return attacks end
 
-local LoadingTitle = Instance.new("TextLabel")
-LoadingTitle.Parent = LoadingFrame
-LoadingTitle.BackgroundTransparency = 1
-LoadingTitle.Position = UDim2.new(0, 0, 0, 15)
-LoadingTitle.Size = UDim2.new(1, 0, 0, 25)
-LoadingTitle.Font = Enum.Font.GothamBold
-LoadingTitle.Text = "⚔️ Fruit Battleground Hub"
-LoadingTitle.TextColor3 = Color3.fromRGB(220, 220, 220)
-LoadingTitle.TextSize = 16
+    for _, item in ipairs(bp:GetChildren()) do
+        local keyBind = nil
+        local name = item.Name
 
-local LoadingStatus = Instance.new("TextLabel")
-LoadingStatus.Parent = LoadingFrame
-LoadingStatus.BackgroundTransparency = 1
-LoadingStatus.Position = UDim2.new(0, 0, 0, 45)
-LoadingStatus.Size = UDim2.new(1, 0, 0, 18)
-LoadingStatus.Font = Enum.Font.Gotham
-LoadingStatus.Text = "Chargement..."
-LoadingStatus.TextColor3 = Color3.fromRGB(140, 140, 140)
-LoadingStatus.TextSize = 12
+        if item:IsA("Tool") then
+            if item:FindFirstChild("KeyBind") then
+                local kb = item.KeyBind
+                if kb:IsA("StringValue") or kb:IsA("IntValue") then keyBind = tostring(kb.Value) end
+            end
+            if not keyBind and item:GetAttribute("KeyBind") then keyBind = tostring(item:GetAttribute("KeyBind")) end
+            if not keyBind and item:GetAttribute("Keybind") then keyBind = tostring(item:GetAttribute("Keybind")) end
+            if not keyBind and item:GetAttribute("Key") then keyBind = tostring(item:GetAttribute("Key")) end
+        elseif item:IsA("LocalScript") or item:IsA("ModuleScript") then
+            if item:GetAttribute("KeyBind") then keyBind = tostring(item:GetAttribute("KeyBind")) end
+            if not keyBind and item:GetAttribute("Keybind") then keyBind = tostring(item:GetAttribute("Keybind")) end
+            if not keyBind and item:GetAttribute("Key") then keyBind = tostring(item:GetAttribute("Key")) end
+            if not keyBind then
+                local upperName = string.upper(name)
+                if upperName == "SORU" or upperName == "DASH" or string.find(upperName, "SORU") then
+                    keyBind = "E"
+                elseif string.find(upperName, "ULTIMATE") or string.find(upperName, "ULT") then
+                    keyBind = "G"
+                end
+            end
+            if not keyBind then
+                for _, child in ipairs(item:GetChildren()) do
+                    if (child:IsA("StringValue") or child:IsA("IntValue")) and
+                       (child.Name == "KeyBind" or child.Name == "Keybind" or child.Name == "Key") then
+                        keyBind = tostring(child.Value)
+                        break
+                    end
+                end
+            end
+        end
 
-local BarBg = Instance.new("Frame")
-BarBg.Parent = LoadingFrame
-BarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-BarBg.Position = UDim2.new(0.1, 0, 0, 75)
-BarBg.Size = UDim2.new(0.8, 0, 0, 10)
-makeCorner(BarBg, 5)
+        if not keyBind then
+            if item:FindFirstChild("KeyBind") then
+                local kb = item.KeyBind
+                if kb:IsA("StringValue") or kb:IsA("IntValue") then keyBind = tostring(kb.Value) end
+            end
+            if not keyBind and item:FindFirstChild("Keybind") then
+                local kb = item.Keybind
+                if kb:IsA("StringValue") or kb:IsA("IntValue") then keyBind = tostring(kb.Value) end
+            end
+            if not keyBind and item:FindFirstChild("Key") then
+                local kb = item.Key
+                if kb:IsA("StringValue") or kb:IsA("IntValue") then keyBind = tostring(kb.Value) end
+            end
+        end
 
-local BarFill = Instance.new("Frame")
-BarFill.Parent = BarBg
-BarFill.BackgroundColor3 = Color3.fromRGB(100, 180, 255)
-BarFill.Size = UDim2.new(0, 0, 1, 0)
-makeCorner(BarFill, 5)
+        if keyBind then
+            table.insert(attacks, {name = name, key = keyBind, item = item})
+        end
+    end
 
-local LoadingPercent = Instance.new("TextLabel")
-LoadingPercent.Parent = LoadingFrame
-LoadingPercent.BackgroundTransparency = 1
-LoadingPercent.Position = UDim2.new(0, 0, 0, 90)
-LoadingPercent.Size = UDim2.new(1, 0, 0, 18)
-LoadingPercent.Font = Enum.Font.GothamSemibold
-LoadingPercent.Text = "0%"
-LoadingPercent.TextColor3 = Color3.fromRGB(100, 180, 255)
-LoadingPercent.TextSize = 11
+    local priorityOrder = {["G"] = 1, ["1"] = 2, ["2"] = 3, ["3"] = 4, ["4"] = 5, ["5"] = 6, ["E"] = 7}
 
-local loadSteps = {
-    {text = "Initialisation...", pct = 0.15},
-    {text = "Chargement settings...", pct = 0.3},
-    {text = "Chargement joueurs...", pct = 0.5},
-    {text = "Préparation téléportations...", pct = 0.7},
-    {text = "Configuration thèmes...", pct = 0.85},
-    {text = "Finalisation...", pct = 1.0},
-}
+    table.sort(attacks, function(a, b)
+        local pa = priorityOrder[string.upper(a.key)] or 99
+        local pb = priorityOrder[string.upper(b.key)] or 99
+        return pa < pb
+    end)
+
+    return attacks
+end
+
+local function isOnCooldown(attackName)
+    local cdFolder = LocalPlayer:FindFirstChild("Cooldowns")
+    if not cdFolder then return false end
+
+    for _, cd in ipairs(cdFolder:GetChildren()) do
+        if cd.Name == attackName then return true end
+    end
+
+    if cdFolder:GetAttribute(attackName) then
+        local val = cdFolder:GetAttribute(attackName)
+        if type(val) == "number" and val > 0 then return true end
+        if type(val) == "boolean" and val == true then return true end
+    end
+
+    return false
+end
+
+local function stringToKeyCode(str)
+    str = string.upper(tostring(str))
+    local map = {
+        ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two, ["3"] = Enum.KeyCode.Three,
+        ["4"] = Enum.KeyCode.Four, ["5"] = Enum.KeyCode.Five, ["6"] = Enum.KeyCode.Six,
+        ["7"] = Enum.KeyCode.Seven, ["8"] = Enum.KeyCode.Eight, ["9"] = Enum.KeyCode.Nine,
+        ["0"] = Enum.KeyCode.Zero, ["Q"] = Enum.KeyCode.Q, ["W"] = Enum.KeyCode.W,
+        ["E"] = Enum.KeyCode.E, ["R"] = Enum.KeyCode.R, ["T"] = Enum.KeyCode.T,
+        ["Y"] = Enum.KeyCode.Y, ["U"] = Enum.KeyCode.U, ["I"] = Enum.KeyCode.I,
+        ["O"] = Enum.KeyCode.O, ["P"] = Enum.KeyCode.P, ["A"] = Enum.KeyCode.A,
+        ["S"] = Enum.KeyCode.S, ["D"] = Enum.KeyCode.D, ["F"] = Enum.KeyCode.F,
+        ["G"] = Enum.KeyCode.G, ["H"] = Enum.KeyCode.H, ["J"] = Enum.KeyCode.J,
+        ["K"] = Enum.KeyCode.K, ["L"] = Enum.KeyCode.L, ["Z"] = Enum.KeyCode.Z,
+        ["X"] = Enum.KeyCode.X, ["C"] = Enum.KeyCode.C, ["V"] = Enum.KeyCode.V,
+        ["B"] = Enum.KeyCode.B, ["N"] = Enum.KeyCode.N, ["M"] = Enum.KeyCode.M,
+    }
+    return map[str]
+end
+
+local DetectedSea = detectCurrentSea()
+
+local LF = Instance.new("Frame") LF.Parent = ScreenGui LF.BackgroundColor3 = Color3.fromRGB(10, 10, 14) LF.Position = UDim2.new(0.5, -180, 0.5, -65) LF.Size = UDim2.new(0, 360, 0, 130) makeCorner(LF, 14) makeStroke(LF, Color3.fromRGB(60, 60, 80), 1.5)
+local LT = Instance.new("TextLabel") LT.Parent = LF LT.BackgroundTransparency = 1 LT.Position = UDim2.new(0,0,0,18) LT.Size = UDim2.new(1,0,0,28) LT.Font = Enum.Font.GothamBold LT.Text = "⚔️ Fruit Battleground Hub" LT.TextColor3 = Color3.fromRGB(225,225,235) LT.TextSize = 17
+local LS = Instance.new("TextLabel") LS.Parent = LF LS.BackgroundTransparency = 1 LS.Position = UDim2.new(0,0,0,48) LS.Size = UDim2.new(1,0,0,20) LS.Font = Enum.Font.Gotham LS.Text = "Chargement..." LS.TextColor3 = Color3.fromRGB(140,140,160) LS.TextSize = 12
+local BB = Instance.new("Frame") BB.Parent = LF BB.BackgroundColor3 = Color3.fromRGB(25,25,35) BB.Position = UDim2.new(0.08,0,0,80) BB.Size = UDim2.new(0.84,0,0,8) makeCorner(BB, 4)
+local BFi = Instance.new("Frame") BFi.Parent = BB BFi.BackgroundColor3 = CurrentTheme.accent BFi.Size = UDim2.new(0,0,1,0) makeCorner(BFi, 4)
+local LP = Instance.new("TextLabel") LP.Parent = LF LP.BackgroundTransparency = 1 LP.Position = UDim2.new(0,0,0,95) LP.Size = UDim2.new(1,0,0,20) LP.Font = Enum.Font.GothamSemibold LP.Text = "0%" LP.TextColor3 = CurrentTheme.accent LP.TextSize = 11
+
+local loadSteps = {{text="Initialisation...",pct=0.15},{text="Chargement settings...",pct=0.3},{text="Détection Sea → Sea "..DetectedSea,pct=0.5},{text="Scan Backpack...",pct=0.7},{text="Préparation...",pct=0.85},{text="Finalisation...",pct=1.0}}
 
 task.spawn(function()
-    for _, step in ipairs(loadSteps) do
-        LoadingStatus.Text = step.text
-        tween(BarFill, {Size = UDim2.new(step.pct, 0, 1, 0)}, 0.35)
-        LoadingPercent.Text = tostring(math.floor(step.pct * 100)) .. "%"
-        task.wait(0.4)
+    for _, step in ipairs(loadSteps) do LS.Text = step.text tween(BFi, {Size = UDim2.new(step.pct, 0, 1, 0)}, 0.3) LP.Text = math.floor(step.pct * 100) .. "%" task.wait(0.35) end
+    task.wait(0.2) LS.Text = "✅ Sea " .. DetectedSea LP.Text = "100%" BFi.BackgroundColor3 = Color3.fromRGB(80,220,120) task.wait(0.4)
+    tween(LF, {BackgroundTransparency = 1}, 0.3)
+    for _, ch in ipairs(LF:GetDescendants()) do
+        if ch:IsA("TextLabel") then tween(ch, {TextTransparency = 1}, 0.3)
+        elseif ch:IsA("Frame") then tween(ch, {BackgroundTransparency = 1}, 0.3)
+        elseif ch:IsA("UIStroke") then tween(ch, {Transparency = 1}, 0.3) end
     end
-    task.wait(0.3)
-    LoadingStatus.Text = "✅ Prêt !"
-    LoadingPercent.Text = "100%"
-    BarFill.BackgroundColor3 = Color3.fromRGB(100, 255, 130)
-    task.wait(0.5)
-    tween(LoadingFrame, {BackgroundTransparency = 1}, 0.3)
-    for _, child in ipairs(LoadingFrame:GetDescendants()) do
-        if child:IsA("TextLabel") then tween(child, {TextTransparency = 1}, 0.3)
-        elseif child:IsA("Frame") then tween(child, {BackgroundTransparency = 1}, 0.3)
-        elseif child:IsA("UIStroke") then tween(child, {Transparency = 1}, 0.3) end
-    end
-    task.wait(0.4)
-    LoadingFrame:Destroy()
-    buildMainGui()
+    task.wait(0.35) LF:Destroy() buildMainGui()
 end)
 
 function buildMainGui()
-    for k, _ in pairs(ThemedElements) do ThemedElements[k] = {} end
+    for k in pairs(ThemedElements) do ThemedElements[k] = {} end
 
-    local MainContainer = Instance.new("Frame")
-    MainContainer.Name = "MainContainer"
-    MainContainer.Parent = ScreenGui
-    MainContainer.BackgroundColor3 = CurrentTheme.bg
-    MainContainer.Position = UDim2.new(0.5, -300, 0.5, -250)
-    MainContainer.Size = UDim2.new(0, 600, 0, 500)
-    MainContainer.ClipsDescendants = true
-    makeCorner(MainContainer, 10)
-    makeStroke(MainContainer, CurrentTheme.stroke, 1.5, "stroke")
-    MainContainer.Active = true
-    MainContainer.Draggable = true
-    registerThemed("bg", MainContainer)
+    local Sea1Data = {name="Sea 1",farms={{name="Auto Farm 1",x=-998.6223,y=696.9323,z=-1022.4783},{name="Auto Farm 2",x=1550.8496,y=737.5434,z=200.3926},{name="Auto Farm 3",x=1279.8958,y=734.0034,z=1275.3406}},bosses={{name="Phœnix",x=-688.5557,y=960.1830,z=516.2355}},zones={{name="Changement de Sea",x=1141.8928,y=733.2534,z=1013.9877,icon="🚢"},{name="Arène",x=772.4551,y=741.8534,z=811.4039,icon="⚔️"},{name="Zone Safe",x=409.0104,y=737.9474,z=-678.9033,icon="🛡️"},{name="Milieu",x=-30.2588,y=1097.2260,z=-31.7645,icon="🎯"}}}
+    local Sea2Data = {name="Sea 2",farms={{name="Auto Farm 1",x=610.9812,y=1226.5872,z=-1286.8816},{name="Auto Farm 2",x=460.8211,y=147.0219,z=-3829.3518},{name="Auto Farm 3",x=508.6341,y=1702.0900,z=-1494.4027}},bosses={{name="Big Mom",x=455.9437,y=163.0124,z=-1728.1251},{name="Katakuri",x=510.7729,y=-1016.3090,z=-2721.7109}},zones={{name="Changement de Sea",x=374.9438,y=148.1493,z=-2498.4480,icon="🚢"},{name="Arène",x=1643.5009,y=213.1493,z=-2617.4768,icon="⚔️"},{name="Zone Safe",x=575.8317,y=203.2899,z=-3433.8040,icon="🛡️"}}}
+    local Sea3Data = {name="Sea 3",farms={{name="Auto Farm 1",x=-1308.5636,y=189.1550,z=411.5455},{name="Auto Farm 2",x=-5450.7290,y=1138.5234,z=656.1223},{name="Auto Farm 3",x=-4921.9092,y=1275.0233,z=-319.2199}},bosses={{name="Kaido",x=-4385.4951,y=1599.5482,z=145.9456}},zones={{name="Changement de Sea",x=-2711.8054,y=164.1261,z=399.1519,icon="🚢"},{name="Arène",x=-4602.2310,y=558.5235,z=75.0911,icon="⚔️"},{name="Zone Safe",x=-4340.8281,y=568.0639,z=151.0080,icon="🛡️"},{name="V2 Fruit",x=-5173.7642,y=701.5235,z=374.3079,icon="🍎"}},extraText="📜 Pour V2 :\n• Defeat Kaido 5x\n• Get 30 Titles\n• Fruit lvl 300\n\nFruits V2 : TSRubber, Dragon, Ice, Magma, Leopard, Light, Flame"}
 
-    local MiniButton = Instance.new("TextButton")
-    MiniButton.Name = "MiniButton"
-    MiniButton.Parent = ScreenGui
-    MiniButton.BackgroundColor3 = CurrentTheme.bg
-    MiniButton.Position = UDim2.new(0, 20, 0.5, -30)
-    MiniButton.Size = UDim2.new(0, 60, 0, 60)
-    MiniButton.Font = Enum.Font.GothamBold
-    MiniButton.Text = "A"
-    MiniButton.TextColor3 = CurrentTheme.accent
-    MiniButton.TextSize = 30
-    MiniButton.Visible = false
-    MiniButton.Active = true
-    MiniButton.Draggable = true
-    MiniButton.AutoButtonColor = false
-    makeCorner(MiniButton, 12)
-    makeStroke(MiniButton, CurrentTheme.stroke, 2, "stroke")
-    registerThemed("bg", MiniButton)
-    registerThemed("accent", MiniButton, "TextColor3")
+    local MC = Instance.new("Frame") MC.Name = "MainContainer" MC.Parent = ScreenGui MC.BackgroundColor3 = CurrentTheme.bg MC.Position = UDim2.new(0.5,-310,0.5,-255) MC.Size = UDim2.new(0,620,0,510) MC.ClipsDescendants = true MC.Active = true MC.Draggable = true makeCorner(MC, 12) makeStroke(MC, CurrentTheme.stroke, 1, "stroke") registerThemed("bg", MC)
 
-    MiniButton.MouseEnter:Connect(function()
-        tween(MiniButton, {Size = UDim2.new(0, 65, 0, 65), TextSize = 33}, 0.15)
-    end)
-    MiniButton.MouseLeave:Connect(function()
-        tween(MiniButton, {Size = UDim2.new(0, 60, 0, 60), TextSize = 30}, 0.15)
-    end)
+    local MBt = Instance.new("TextButton") MBt.Parent = ScreenGui MBt.BackgroundColor3 = CurrentTheme.bg MBt.Position = UDim2.new(0,20,0.5,-28) MBt.Size = UDim2.new(0,56,0,56) MBt.Font = Enum.Font.GothamBold MBt.Text = "A" MBt.TextColor3 = CurrentTheme.accent MBt.TextSize = 28 MBt.Visible = false MBt.Active = true MBt.Draggable = true MBt.AutoButtonColor = false makeCorner(MBt, 14) makeStroke(MBt, CurrentTheme.stroke, 2, "stroke") registerThemed("bg", MBt) registerThemed("accent", MBt, "TextColor3")
+    MBt.MouseEnter:Connect(function() tween(MBt, {Size=UDim2.new(0,62,0,62),TextSize=32}, 0.15) end)
+    MBt.MouseLeave:Connect(function() tween(MBt, {Size=UDim2.new(0,56,0,56),TextSize=28}, 0.15) end)
 
-    local savedMainPos = nil
-    local savedMainSize = nil
+    local svP, svS
+    local function minGui() IsMinimized = true svP = MC.Position svS = MC.Size
+        TweenService:Create(MC, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size=UDim2.new(0,0,0,0), Position=UDim2.new(MC.Position.X.Scale,MC.Position.X.Offset+310,MC.Position.Y.Scale,MC.Position.Y.Offset+255)}):Play()
+        task.delay(0.3, function() MC.Visible = false MBt.Visible = true MBt.Size = UDim2.new(0,0,0,0) MBt.TextSize = 0
+            TweenService:Create(MBt, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size=UDim2.new(0,56,0,56),TextSize=28}):Play() end)
+    end
+    local function maxGui() IsMinimized = false
+        TweenService:Create(MBt, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size=UDim2.new(0,0,0,0),TextSize=0}):Play()
+        task.delay(0.2, function() MBt.Visible = false MC.Visible = true MC.Position = svP or UDim2.new(0.5,-310,0.5,-255) MC.Size = UDim2.new(0,0,0,0)
+            TweenService:Create(MC, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size=svS or UDim2.new(0,620,0,510)}):Play()
+            task.delay(0.5, function() if CurrentTransparency > 0 then applyTransparency(CurrentTransparency) end end) end)
+    end
+    MBt.MouseButton1Click:Connect(maxGui)
 
-    local function minimizeGui()
-        IsMinimized = true
-        savedMainPos = MainContainer.Position
-        savedMainSize = MainContainer.Size
-        TweenService:Create(MainContainer, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            Position = UDim2.new(
-                MainContainer.Position.X.Scale,
-                MainContainer.Position.X.Offset + 300,
-                MainContainer.Position.Y.Scale,
-                MainContainer.Position.Y.Offset + 250
-            )
-        }):Play()
-        task.delay(0.3, function()
-            MainContainer.Visible = false
-            MiniButton.Visible = true
-            MiniButton.BackgroundColor3 = CurrentTheme.bg
-            MiniButton.TextColor3 = CurrentTheme.accent
-            MiniButton.Size = UDim2.new(0, 0, 0, 0)
-            MiniButton.TextSize = 0
-            TweenService:Create(MiniButton, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 60, 0, 60),
-                TextSize = 30
-            }):Play()
-        end)
+    MC.Size = UDim2.new(0,0,0,0) MC.Position = UDim2.new(0.5,0,0.5,0)
+    tween(MC, {Size=UDim2.new(0,620,0,510), Position=UDim2.new(0.5,-310,0.5,-255)}, 0.5)
+    task.delay(0.6, function() if CurrentTransparency > 0 then applyTransparency(CurrentTransparency) end end)
+
+    local TB = Instance.new("Frame") TB.Parent = MC TB.BackgroundColor3 = CurrentTheme.titleBar TB.Size = UDim2.new(1,0,0,40) TB.BorderSizePixel = 0 makeCorner(TB, 12) registerThemed("titleBar", TB)
+    local TBF = Instance.new("Frame") TBF.Parent = TB TBF.BackgroundColor3 = CurrentTheme.titleBar TBF.Position = UDim2.new(0,0,1,-12) TBF.Size = UDim2.new(1,0,0,12) TBF.BorderSizePixel = 0 registerThemed("titleBar", TBF)
+    local AL = Instance.new("Frame") AL.Parent = MC AL.BackgroundColor3 = CurrentTheme.accent AL.Position = UDim2.new(0,0,0,40) AL.Size = UDim2.new(1,0,0,2) AL.BorderSizePixel = 0 registerThemed("accent", AL, "BackgroundColor3")
+    local TT = Instance.new("TextLabel") TT.Parent = TB TT.BackgroundTransparency = 1 TT.Position = UDim2.new(0,16,0,0) TT.Size = UDim2.new(0,350,1,0) TT.Font = Enum.Font.GothamBold TT.Text = "⚔️  FBG HUB  ·  SEA "..DetectedSea TT.TextColor3 = CurrentTheme.text TT.TextSize = 13 TT.TextXAlignment = Enum.TextXAlignment.Left registerThemed("text", TT, "TextColor3")
+
+    local CB = Instance.new("TextButton") CB.Parent = TB CB.BackgroundColor3 = Color3.fromRGB(220,55,55) CB.Position = UDim2.new(1,-34,0.5,-11) CB.Size = UDim2.new(0,22,0,22) CB.Font = Enum.Font.GothamBold CB.Text = "✕" CB.TextColor3 = Color3.fromRGB(255,255,255) CB.TextSize = 11 makeCorner(CB, 6) hoverEffect(CB, Color3.fromRGB(220,55,55), Color3.fromRGB(255,70,70)) CB.MouseButton1Click:Connect(destroyAll)
+    local MnB = Instance.new("TextButton") MnB.Parent = TB MnB.BackgroundColor3 = Color3.fromRGB(55,55,68) MnB.Position = UDim2.new(1,-90,0.5,-11) MnB.Size = UDim2.new(0,22,0,22) MnB.Font = Enum.Font.GothamBold MnB.Text = "−" MnB.TextColor3 = Color3.fromRGB(200,200,210) MnB.TextSize = 15 makeCorner(MnB, 6) hoverEffect(MnB, Color3.fromRGB(55,55,68), Color3.fromRGB(75,75,92)) MnB.MouseButton1Click:Connect(minGui)
+    local SBt = Instance.new("TextButton") SBt.Parent = TB SBt.BackgroundColor3 = Color3.fromRGB(55,55,68) SBt.Position = UDim2.new(1,-62,0.5,-11) SBt.Size = UDim2.new(0,22,0,22) SBt.Font = Enum.Font.GothamBold SBt.Text = "⚙" SBt.TextColor3 = Color3.fromRGB(200,200,210) SBt.TextSize = 12 makeCorner(SBt, 6) hoverEffect(SBt, Color3.fromRGB(55,55,68), Color3.fromRGB(75,75,92))
+
+    local SDr = Instance.new("Frame") SDr.Parent = MC SDr.BackgroundColor3 = CurrentTheme.sidebar SDr.Position = UDim2.new(0,0,0,42) SDr.Size = UDim2.new(0,130,1,-42) SDr.BorderSizePixel = 0 registerThemed("sidebar", SDr)
+    local SDL = Instance.new("Frame") SDL.Parent = SDr SDL.BackgroundColor3 = CurrentTheme.separator SDL.Position = UDim2.new(1,0,0,0) SDL.Size = UDim2.new(0,1,1,0) SDL.BorderSizePixel = 0 registerThemed("separator", SDL)
+    local CA = Instance.new("Frame") CA.Parent = MC CA.BackgroundTransparency = 1 CA.Position = UDim2.new(0,136,0,48) CA.Size = UDim2.new(1,-144,1,-56)
+
+    local G1,G2,G3,G4,G5
+    local sB = {}
+    local cP = "Home"
+    local function clr() if G1 then G1:Destroy() G1=nil end if G2 then G2:Destroy() G2=nil end if G3 then G3:Destroy() G3=nil end if G4 then G4:Destroy() G4=nil end if G5 then G5:Destroy() G5=nil end end
+
+    local function mkTP(p,n,x,y,z,lo,ic)
+        ic = ic or "📍"
+        local b = Instance.new("TextButton") b.Parent = p b.BackgroundColor3 = CurrentTheme.card b.Size = UDim2.new(1,-6,0,38) b.Font = Enum.Font.GothamSemibold b.Text = "  "..ic.."  "..n b.TextColor3 = CurrentTheme.textDim b.TextSize = 12 b.TextXAlignment = Enum.TextXAlignment.Left b.LayoutOrder = lo or 0 makeCorner(b, 8) registerThemed("card", b) registerThemed("textDim", b, "TextColor3")
+        local ot = b.Text
+        b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+        b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+        b.MouseButton1Click:Connect(function() local ok = teleportTo(x,y,z) b.Text = ok and "  ✅ TP !" or "  ❌ Erreur" b.TextColor3 = ok and Color3.fromRGB(80,220,120) or Color3.fromRGB(255,80,80) task.wait(1) b.Text = ot b.TextColor3 = CurrentTheme.textDim end)
     end
 
-    local function maximizeGui()
-        IsMinimized = false
-        TweenService:Create(MiniButton, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 0, 0, 0),
-            TextSize = 0
-        }):Play()
-        task.delay(0.2, function()
-            MiniButton.Visible = false
-            MainContainer.Visible = true
-            MainContainer.Position = savedMainPos or UDim2.new(0.5, -300, 0.5, -250)
-            MainContainer.Size = UDim2.new(0, 0, 0, 0)
-            TweenService:Create(MainContainer, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = savedMainSize or UDim2.new(0, 600, 0, 500)
-            }):Play()
-            task.delay(0.5, function()
-                if CurrentTransparency > 0 then
-                    applyTransparency(CurrentTransparency)
-                end
-            end)
-        end)
+    local function mkSec(p,t,lo) local l = Instance.new("TextLabel") l.Parent = p l.BackgroundTransparency = 1 l.Size = UDim2.new(1,-6,0,30) l.Font = Enum.Font.GothamBold l.Text = t l.TextColor3 = CurrentTheme.accent l.TextSize = 11 l.TextXAlignment = Enum.TextXAlignment.Left l.LayoutOrder = lo or 0 registerThemed("accent", l, "TextColor3") end
+
+    local function mkScroll(p)
+        local sf = Instance.new("ScrollingFrame") sf.Parent = p sf.BackgroundColor3 = CurrentTheme.content sf.Size = UDim2.new(1,0,1,0) sf.BorderSizePixel = 0 sf.CanvasSize = UDim2.new(0,0,0,0) sf.AutomaticCanvasSize = Enum.AutomaticSize.Y sf.ScrollBarThickness = 3 sf.ScrollBarImageColor3 = CurrentTheme.stroke makeCorner(sf, 10) makeStroke(sf, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("content", sf)
+        local l = Instance.new("UIListLayout") l.Parent = sf l.SortOrder = Enum.SortOrder.LayoutOrder l.Padding = UDim.new(0,6)
+        local pd = Instance.new("UIPadding") pd.Parent = sf pd.PaddingTop = UDim.new(0,12) pd.PaddingLeft = UDim.new(0,12) pd.PaddingRight = UDim.new(0,12) pd.PaddingBottom = UDim.new(0,12)
+        return sf
     end
 
-    MiniButton.MouseButton1Click:Connect(maximizeGui)
-
-    MainContainer.Size = UDim2.new(0, 0, 0, 0)
-    MainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
-    tween(MainContainer, {
-        Size = UDim2.new(0, 600, 0, 500),
-        Position = UDim2.new(0.5, -300, 0.5, -250)
-    }, 0.5)
-
-    task.delay(0.6, function()
-        if CurrentTransparency > 0 then
-            applyTransparency(CurrentTransparency)
-        end
-    end)
-
-    local TitleBar = Instance.new("Frame")
-    TitleBar.Parent = MainContainer
-    TitleBar.BackgroundColor3 = CurrentTheme.titleBar
-    TitleBar.Size = UDim2.new(1, 0, 0, 35)
-    TitleBar.BorderSizePixel = 0
-    makeCorner(TitleBar, 10)
-    registerThemed("titleBar", TitleBar)
-
-    local TitleFix = Instance.new("Frame")
-    TitleFix.Parent = TitleBar
-    TitleFix.BackgroundColor3 = CurrentTheme.titleBar
-    TitleFix.Position = UDim2.new(0, 0, 1, -10)
-    TitleFix.Size = UDim2.new(1, 0, 0, 10)
-    TitleFix.BorderSizePixel = 0
-    registerThemed("titleBar", TitleFix)
-
-    local TitleText = Instance.new("TextLabel")
-    TitleText.Parent = TitleBar
-    TitleText.BackgroundTransparency = 1
-    TitleText.Position = UDim2.new(0, 12, 0, 0)
-    TitleText.Size = UDim2.new(0, 300, 1, 0)
-    TitleText.Font = Enum.Font.GothamBold
-    TitleText.Text = "⚔️ Fruit Battleground Hub"
-    TitleText.TextColor3 = CurrentTheme.text
-    TitleText.TextSize = 14
-    TitleText.TextXAlignment = Enum.TextXAlignment.Left
-    registerThemed("text", TitleText, "TextColor3")
-
-    local CloseBtn = Instance.new("TextButton")
-    CloseBtn.Parent = TitleBar
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    CloseBtn.Position = UDim2.new(1, -30, 0.5, -10)
-    CloseBtn.Size = UDim2.new(0, 20, 0, 20)
-    CloseBtn.Font = Enum.Font.GothamBold
-    CloseBtn.Text = "✖️"
-    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    CloseBtn.TextSize = 12
-    makeCorner(CloseBtn, 4)
-    hoverEffect(CloseBtn, Color3.fromRGB(200, 50, 50), Color3.fromRGB(255, 70, 70))
-    CloseBtn.MouseButton1Click:Connect(destroyAll)
-
-    local MinimizeBtn = Instance.new("TextButton")
-    MinimizeBtn.Parent = TitleBar
-    MinimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    MinimizeBtn.Position = UDim2.new(1, -82, 0.5, -10)
-    MinimizeBtn.Size = UDim2.new(0, 20, 0, 20)
-    MinimizeBtn.Font = Enum.Font.GothamBold
-    MinimizeBtn.Text = "−"
-    MinimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    MinimizeBtn.TextSize = 16
-    makeCorner(MinimizeBtn, 4)
-    hoverEffect(MinimizeBtn, Color3.fromRGB(60, 60, 70), Color3.fromRGB(80, 80, 95))
-    MinimizeBtn.MouseButton1Click:Connect(minimizeGui)
-
-    local SettingsBtn = Instance.new("TextButton")
-    SettingsBtn.Parent = TitleBar
-    SettingsBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    SettingsBtn.Position = UDim2.new(1, -56, 0.5, -10)
-    SettingsBtn.Size = UDim2.new(0, 20, 0, 20)
-    SettingsBtn.Font = Enum.Font.GothamBold
-    SettingsBtn.Text = "⚙"
-    SettingsBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    SettingsBtn.TextSize = 13
-    makeCorner(SettingsBtn, 4)
-    hoverEffect(SettingsBtn, Color3.fromRGB(60, 60, 70), Color3.fromRGB(80, 80, 95))
-
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Parent = MainContainer
-    Sidebar.BackgroundColor3 = CurrentTheme.sidebar
-    Sidebar.Position = UDim2.new(0, 0, 0, 35)
-    Sidebar.Size = UDim2.new(0, 120, 1, -35)
-    Sidebar.BorderSizePixel = 0
-    registerThemed("sidebar", Sidebar)
-
-    local SidebarLine = Instance.new("Frame")
-    SidebarLine.Parent = Sidebar
-    SidebarLine.BackgroundColor3 = CurrentTheme.separator
-    SidebarLine.Position = UDim2.new(1, 0, 0, 0)
-    SidebarLine.Size = UDim2.new(0, 1, 1, 0)
-    SidebarLine.BorderSizePixel = 0
-    registerThemed("separator", SidebarLine)
-
-    local ContentArea = Instance.new("Frame")
-    ContentArea.Parent = MainContainer
-    ContentArea.BackgroundTransparency = 1
-    ContentArea.Position = UDim2.new(0, 125, 0, 40)
-    ContentArea.Size = UDim2.new(1, -135, 1, -50)
-
-    local GUI1, GUI2, GUI3, GUI4, GUI5
-    local GUI_Sea1, GUI_Sea2, GUI_Sea3
-    local sidebarButtons = {}
-    local currentPage = "Home"
-
-    local function clearAllPages()
-        if GUI1 then GUI1:Destroy() GUI1 = nil end
-        if GUI2 then GUI2:Destroy() GUI2 = nil end
-        if GUI3 then GUI3:Destroy() GUI3 = nil end
-        if GUI4 then GUI4:Destroy() GUI4 = nil end
-        if GUI5 then GUI5:Destroy() GUI5 = nil end
-        if GUI_Sea1 then GUI_Sea1:Destroy() GUI_Sea1 = nil end
-        if GUI_Sea2 then GUI_Sea2:Destroy() GUI_Sea2 = nil end
-        if GUI_Sea3 then GUI_Sea3:Destroy() GUI_Sea3 = nil end
+    local function bG1()
+        clr()
+        G1 = Instance.new("Frame") G1.Parent = CA G1.BackgroundTransparency = 1 G1.Size = UDim2.new(1,0,1,0)
+        local sf = mkScroll(G1)
+        local ic = Instance.new("TextLabel") ic.Parent = sf ic.BackgroundTransparency = 1 ic.Size = UDim2.new(1,-6,0,50) ic.Font = Enum.Font.GothamBold ic.Text = "⚔️🍎" ic.TextColor3 = Color3.fromRGB(255,255,255) ic.TextSize = 36 ic.LayoutOrder = 0
+        local tt = Instance.new("TextLabel") tt.Parent = sf tt.BackgroundTransparency = 1 tt.Size = UDim2.new(1,-6,0,30) tt.Font = Enum.Font.GothamBold tt.Text = "Fruit Battleground Hub" tt.TextColor3 = CurrentTheme.text tt.TextSize = 22 tt.LayoutOrder = 1 registerThemed("text", tt, "TextColor3")
+        local sn = {[1]="Sea 1 · Scientist",[2]="Sea 2 · Charlie",[3]="Sea 3 · Unknown"}
+        local sb = Instance.new("TextLabel") sb.Parent = sf sb.BackgroundColor3 = CurrentTheme.card sb.Size = UDim2.new(1,-6,0,32) sb.Font = Enum.Font.GothamBold sb.Text = "  🌊 "..sn[DetectedSea] sb.TextColor3 = CurrentTheme.accent sb.TextSize = 12 sb.TextXAlignment = Enum.TextXAlignment.Left sb.LayoutOrder = 2 makeCorner(sb, 8) registerThemed("card", sb) registerThemed("accent", sb, "TextColor3")
+        local ds = Instance.new("TextLabel") ds.Parent = sf ds.BackgroundTransparency = 1 ds.Size = UDim2.new(1,-6,0,180) ds.Font = Enum.Font.Gotham ds.Text = "Bienvenue !\n\n🔀  Teleport · TP joueurs + Zones\n⌨️  Auto · Keybind + Ultimate Farm + Stay\n🔧  Misc · Noclip, Infinite Soru\n⚙️  Settings · Thèmes & Transparence\n\n🔥 Ultimate Farm : Scan auto du Backpack,\nskip les attaques en cooldown !" ds.TextColor3 = CurrentTheme.textDim ds.TextSize = 11 ds.TextWrapped = true ds.TextYAlignment = Enum.TextYAlignment.Top ds.LayoutOrder = 3 registerThemed("textDim", ds, "TextColor3")
     end
 
-    local function makeTpButton(parent, name, x, y, z, layoutOrder, icon)
-        icon = icon or "📍"
-        local btn = Instance.new("TextButton")
-        btn.Parent = parent
-        btn.BackgroundColor3 = CurrentTheme.card
-        btn.Size = UDim2.new(1, -10, 0, 35)
-        btn.Font = Enum.Font.GothamSemibold
-        btn.Text = "  " .. icon .. " " .. name
-        btn.TextColor3 = CurrentTheme.textDim
-        btn.TextSize = 12
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.LayoutOrder = layoutOrder or 0
-        makeCorner(btn, 5)
-        registerThemed("card", btn)
-        registerThemed("textDim", btn, "TextColor3")
-        local origText = btn.Text
-        btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end)
-        btn.MouseLeave:Connect(function() tween(btn, {BackgroundColor3 = CurrentTheme.card}, 0.15) end)
-        btn.MouseButton1Click:Connect(function()
-            local success = teleportTo(x, y, z)
-            if success then
-                btn.Text = "  ✅ Téléporté !"
-                btn.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else
-                btn.Text = "  ❌ Erreur"
-                btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-            end
-            task.wait(1.2)
-            btn.Text = origText
-            btn.TextColor3 = CurrentTheme.textDim
-        end)
-        return btn
-    end
-
-    local function makeSectionLabel(parent, text, layoutOrder)
-        local label = Instance.new("TextLabel")
-        label.Parent = parent
-        label.BackgroundTransparency = 1
-        label.Size = UDim2.new(1, -10, 0, 28)
-        label.Font = Enum.Font.GothamBold
-        label.Text = text
-        label.TextColor3 = Color3.fromRGB(255, 200, 80)
-        label.TextSize = 12
-        label.LayoutOrder = layoutOrder or 0
-        return label
-    end
-
-    local function makeBackButton(parent, layoutOrder, callback)
-        local btn = Instance.new("TextButton")
-        btn.Parent = parent
-        btn.BackgroundColor3 = Color3.fromRGB(50, 35, 35)
-        btn.Size = UDim2.new(1, -10, 0, 32)
-        btn.Font = Enum.Font.GothamBold
-        btn.Text = "  ← Retour aux Téléportations"
-        btn.TextColor3 = Color3.fromRGB(220, 150, 150)
-        btn.TextSize = 12
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.LayoutOrder = layoutOrder or 0
-        makeCorner(btn, 5)
-        hoverEffect(btn, Color3.fromRGB(50, 35, 35), Color3.fromRGB(70, 45, 45))
-        btn.MouseButton1Click:Connect(callback)
-        return btn
-    end
-
-    local function buildSeaGui(seaData, buildGUI2Ref)
-        clearAllPages()
-        local seaGui = Instance.new("Frame")
-        seaGui.Name = "GUI_" .. seaData.name
-        seaGui.Parent = ContentArea
-        seaGui.BackgroundTransparency = 1
-        seaGui.Size = UDim2.new(1, 0, 1, 0)
-        local ScrollFrame = Instance.new("ScrollingFrame")
-        ScrollFrame.Parent = seaGui
-        ScrollFrame.BackgroundColor3 = CurrentTheme.content
-        ScrollFrame.Size = UDim2.new(1, 0, 1, 0)
-        ScrollFrame.BorderSizePixel = 0
-        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-        ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        ScrollFrame.ScrollBarThickness = 4
-        ScrollFrame.ScrollBarImageColor3 = CurrentTheme.stroke
-        makeCorner(ScrollFrame, 8)
-        makeStroke(ScrollFrame, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("content", ScrollFrame)
-        local Layout = Instance.new("UIListLayout")
-        Layout.Parent = ScrollFrame
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 5)
-        local Pad = Instance.new("UIPadding")
-        Pad.Parent = ScrollFrame
-        Pad.PaddingTop = UDim.new(0, 10)
-        Pad.PaddingLeft = UDim.new(0, 10)
-        Pad.PaddingRight = UDim.new(0, 10)
-        Pad.PaddingBottom = UDim.new(0, 10)
-        local TLabel = Instance.new("TextLabel")
-        TLabel.Parent = ScrollFrame
-        TLabel.BackgroundTransparency = 1
-        TLabel.Size = UDim2.new(1, -10, 0, 28)
-        TLabel.Font = Enum.Font.GothamBold
-        TLabel.Text = "🌊 " .. seaData.name
-        TLabel.TextColor3 = CurrentTheme.accent
-        TLabel.TextSize = 16
-        TLabel.LayoutOrder = 0
-        registerThemed("accent", TLabel, "TextColor3")
-        makeBackButton(ScrollFrame, 1, buildGUI2Ref)
-        local order = 2
-        makeSectionLabel(ScrollFrame, "----- Auto Farm ----", order)
-        order = order + 1
-        for _, farm in ipairs(seaData.farms) do
-            makeTpButton(ScrollFrame, farm.name, farm.x, farm.y, farm.z, order, "🌾")
-            order = order + 1
-        end
-        makeSectionLabel(ScrollFrame, "----- Boss ----", order)
-        order = order + 1
-        for _, boss in ipairs(seaData.bosses) do
-            makeTpButton(ScrollFrame, boss.name, boss.x, boss.y, boss.z, order, "👹")
-            order = order + 1
-        end
-        makeSectionLabel(ScrollFrame, "----- Zone utile ----", order)
-        order = order + 1
-        for _, zone in ipairs(seaData.zones) do
-            makeTpButton(ScrollFrame, zone.name, zone.x, zone.y, zone.z, order, zone.icon or "📍")
-            order = order + 1
-        end
-        if seaData.extraText then
-            local extraFrame = Instance.new("Frame")
-            extraFrame.Parent = ScrollFrame
-            extraFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 20)
-            extraFrame.Size = UDim2.new(1, -10, 0, 130)
-            extraFrame.LayoutOrder = order
-            makeCorner(extraFrame, 6)
-            makeStroke(extraFrame, Color3.fromRGB(80, 70, 30), 1)
-            local extraLabel = Instance.new("TextLabel")
-            extraLabel.Parent = extraFrame
-            extraLabel.BackgroundTransparency = 1
-            extraLabel.Position = UDim2.new(0, 10, 0, 8)
-            extraLabel.Size = UDim2.new(1, -20, 1, -16)
-            extraLabel.Font = Enum.Font.Gotham
-            extraLabel.Text = seaData.extraText
-            extraLabel.TextColor3 = Color3.fromRGB(200, 180, 100)
-            extraLabel.TextSize = 10
-            extraLabel.TextWrapped = true
-            extraLabel.TextYAlignment = Enum.TextYAlignment.Top
-        end
-        return seaGui
-    end
-
-    local Sea1Data = {
-        name = "Sea 1",
-        farms = {
-            {name = "Auto Farm 1", x = -998.6223, y = 696.9323, z = -1022.4783},
-            {name = "Auto Farm 2", x = 1550.8496, y = 737.5434, z = 200.3926},
-            {name = "Auto Farm 3", x = 1279.8958, y = 734.0034, z = 1275.3406},
-        },
-        bosses = {{name = "Phœnix", x = -688.5557, y = 960.1830, z = 516.2355}},
-        zones = {
-            {name = "Changement de Sea", x = 1141.8928, y = 733.2534, z = 1013.9877, icon = "🚢"},
-            {name = "Arène", x = 772.4551, y = 741.8534, z = 811.4039, icon = "⚔️"},
-            {name = "Zone Safe", x = 409.0104, y = 737.9474, z = -678.9033, icon = "🛡️"},
-            {name = "Milieu", x = -30.2588, y = 1097.2260, z = -31.7645, icon = "🎯"},
-        },
-    }
-
-    local Sea2Data = {
-        name = "Sea 2",
-        farms = {
-            {name = "Auto Farm 1", x = 610.9812, y = 1226.5872, z = -1286.8816},
-            {name = "Auto Farm 2", x = 460.8211, y = 147.0219, z = -3829.3518},
-            {name = "Auto Farm 3", x = 508.6341, y = 1702.0900, z = -1494.4027},
-        },
-        bosses = {
-            {name = "Big Mom", x = 455.9437, y = 163.0124, z = -1728.1251},
-            {name = "Katakuri", x = 510.7729, y = -1016.3090, z = -2721.7109},
-        },
-        zones = {
-            {name = "Changement de Sea", x = 374.9438, y = 148.1493, z = -2498.4480, icon = "🚢"},
-            {name = "Arène", x = 1643.5009, y = 213.1493, z = -2617.4768, icon = "⚔️"},
-            {name = "Zone Safe", x = 575.8317, y = 203.2899, z = -3433.8040, icon = "🛡️"},
-        },
-    }
-
-    local Sea3Data = {
-        name = "Sea 3",
-        farms = {
-            {name = "Auto Farm 1", x = -1308.5636, y = 189.1550, z = 411.5455},
-            {name = "Auto Farm 2", x = -5450.7290, y = 1138.5234, z = 656.1223},
-            {name = "Auto Farm 3", x = -4921.9092, y = 1275.0233, z = -319.2199},
-        },
-        bosses = {{name = "Kaido", x = -4385.4951, y = 1599.5482, z = 145.9456}},
-        zones = {
-            {name = "Changement de Sea", x = -2711.8054, y = 164.1261, z = 399.1519, icon = "🚢"},
-            {name = "Arène", x = -4602.2310, y = 558.5235, z = 75.0911, icon = "⚔️"},
-            {name = "Zone Safe", x = -4340.8281, y = 568.0639, z = 151.0080, icon = "🛡️"},
-            {name = "V2 Fruit", x = -5173.7642, y = 701.5235, z = 374.3079, icon = "🍎"},
-        },
-        extraText = "📜 Pour V2 un fruit il faut :\n\n• Defeat Kaido 5 Times\n• Get 30 Titles\n• Fruit lvl 300\n\nLes seuls fruits qui peuvent être V2 sont :\nTSRubber, Dragon, Ice, Magma, Leopard, Light, and Flame",
-    }
-
-    local function buildGUI1()
-        clearAllPages()
-        GUI1 = Instance.new("Frame")
-        GUI1.Name = "GUI1_Home"
-        GUI1.Parent = ContentArea
-        GUI1.BackgroundTransparency = 1
-        GUI1.Size = UDim2.new(1, 0, 1, 0)
-        local WF = Instance.new("Frame")
-        WF.Parent = GUI1
-        WF.BackgroundColor3 = CurrentTheme.content
-        WF.Size = UDim2.new(1, 0, 1, 0)
-        WF.BorderSizePixel = 0
-        makeCorner(WF, 8)
-        makeStroke(WF, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("content", WF)
-        local WIcon = Instance.new("TextLabel")
-        WIcon.Parent = WF
-        WIcon.BackgroundTransparency = 1
-        WIcon.Position = UDim2.new(0, 0, 0, 25)
-        WIcon.Size = UDim2.new(1, 0, 0, 40)
-        WIcon.Font = Enum.Font.GothamBold
-        WIcon.Text = "⚔️🍎"
-        WIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
-        WIcon.TextSize = 30
-        local WT = Instance.new("TextLabel")
-        WT.Parent = WF
-        WT.BackgroundTransparency = 1
-        WT.Position = UDim2.new(0, 0, 0, 70)
-        WT.Size = UDim2.new(1, 0, 0, 30)
-        WT.Font = Enum.Font.GothamBold
-        WT.Text = "Fruit Battleground Hub"
-        WT.TextColor3 = CurrentTheme.text
-        WT.TextSize = 20
-        registerThemed("text", WT, "TextColor3")
-        local WD = Instance.new("TextLabel")
-        WD.Parent = WF
-        WD.BackgroundTransparency = 1
-        WD.Position = UDim2.new(0.05, 0, 0, 115)
-        WD.Size = UDim2.new(0.9, 0, 0, 200)
-        WD.Font = Enum.Font.Gotham
-        WD.Text = "Premier script pour Fruit Battleground !\n\nOptions disponibles :\n\n🔀 Téléport : TP joueurs + Zones Sea 1, 2, 3\n⌨️ Auto : Auto Keybind + Stay Position\n🔧 Misc : Noclip, Infinite Soru / Dash\n⚙️ Settings : Thèmes & Transparence (sauvegardés)\n− Minimize : Réduire le GUI en petit bouton\n\nNaviguez avec les onglets à gauche."
-        WD.TextColor3 = CurrentTheme.textDim
-        WD.TextSize = 11
-        WD.TextWrapped = true
-        WD.TextYAlignment = Enum.TextYAlignment.Top
-        registerThemed("textDim", WD, "TextColor3")
-        local VL = Instance.new("TextLabel")
-        VL.Parent = WF
-        VL.BackgroundTransparency = 1
-        VL.Position = UDim2.new(0, 0, 1, -30)
-        VL.Size = UDim2.new(1, 0, 0, 20)
-        VL.Font = Enum.Font.Gotham
-        VL.Text = "v8.0 | Compatible Xeno | Settings sauvegardés"
-        VL.TextColor3 = Color3.fromRGB(80, 80, 80)
-        VL.TextSize = 10
-    end
-
-    local function buildGUI2()
-        clearAllPages()
-        currentPage = "Teleport"
-        updateSidebarHighlight("Teleport")
-        GUI2 = Instance.new("Frame")
-        GUI2.Name = "GUI2_Teleport"
-        GUI2.Parent = ContentArea
-        GUI2.BackgroundTransparency = 1
-        GUI2.Size = UDim2.new(1, 0, 1, 0)
-        local ScrollFrame = Instance.new("ScrollingFrame")
-        ScrollFrame.Parent = GUI2
-        ScrollFrame.BackgroundColor3 = CurrentTheme.content
-        ScrollFrame.Size = UDim2.new(1, 0, 1, 0)
-        ScrollFrame.BorderSizePixel = 0
-        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-        ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        ScrollFrame.ScrollBarThickness = 4
-        ScrollFrame.ScrollBarImageColor3 = CurrentTheme.stroke
-        makeCorner(ScrollFrame, 8)
-        makeStroke(ScrollFrame, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("content", ScrollFrame)
-        local Layout = Instance.new("UIListLayout")
-        Layout.Parent = ScrollFrame
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 6)
-        local Pad = Instance.new("UIPadding")
-        Pad.Parent = ScrollFrame
-        Pad.PaddingTop = UDim.new(0, 10)
-        Pad.PaddingLeft = UDim.new(0, 10)
-        Pad.PaddingRight = UDim.new(0, 10)
-        Pad.PaddingBottom = UDim.new(0, 10)
-        local TPSection = Instance.new("Frame")
-        TPSection.Parent = ScrollFrame
-        TPSection.BackgroundColor3 = CurrentTheme.card
-        TPSection.Size = UDim2.new(1, -10, 0, 200)
-        TPSection.LayoutOrder = 1
-        makeCorner(TPSection, 6)
-        makeStroke(TPSection, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", TPSection)
-        local TPTitle = Instance.new("TextLabel")
-        TPTitle.Parent = TPSection
-        TPTitle.BackgroundTransparency = 1
-        TPTitle.Position = UDim2.new(0, 10, 0, 5)
-        TPTitle.Size = UDim2.new(1, -20, 0, 22)
-        TPTitle.Font = Enum.Font.GothamBold
-        TPTitle.Text = "👥 Téléportation Joueurs (auto-refresh)"
-        TPTitle.TextColor3 = CurrentTheme.textDim
-        TPTitle.TextSize = 13
-        TPTitle.TextXAlignment = Enum.TextXAlignment.Left
-        registerThemed("textDim", TPTitle, "TextColor3")
-        local PlayerList = Instance.new("ScrollingFrame")
-        PlayerList.Parent = TPSection
-        PlayerList.BackgroundColor3 = CurrentTheme.cardInner
-        PlayerList.Position = UDim2.new(0, 8, 0, 30)
-        PlayerList.Size = UDim2.new(1, -16, 1, -38)
-        PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
-        PlayerList.ScrollBarThickness = 3
-        PlayerList.ScrollBarImageColor3 = CurrentTheme.stroke
-        PlayerList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        PlayerList.BorderSizePixel = 0
-        makeCorner(PlayerList, 4)
-        registerThemed("cardInner", PlayerList)
-        local PLayout = Instance.new("UIListLayout")
-        PLayout.Parent = PlayerList
-        PLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        PLayout.Padding = UDim.new(0, 3)
-        local PPad = Instance.new("UIPadding")
-        PPad.Parent = PlayerList
-        PPad.PaddingTop = UDim.new(0, 4)
-        PPad.PaddingLeft = UDim.new(0, 4)
-        PPad.PaddingRight = UDim.new(0, 4)
-        PPad.PaddingBottom = UDim.new(0, 4)
-        local function createPlayerBtn(player)
-            if player == LocalPlayer then return end
-            if PlayerList:FindFirstChild("P_" .. player.Name) then return end
-            local btn = Instance.new("TextButton")
-            btn.Name = "P_" .. player.Name
-            btn.Parent = PlayerList
-            btn.BackgroundColor3 = CurrentTheme.card
-            btn.Size = UDim2.new(1, -8, 0, 28)
-            btn.Font = Enum.Font.GothamSemibold
-            btn.Text = "  🔹 " .. player.DisplayName .. " (@" .. player.Name .. ")"
-            btn.TextColor3 = CurrentTheme.textDim
-            btn.TextSize = 11
-            btn.TextXAlignment = Enum.TextXAlignment.Left
-            makeCorner(btn, 4)
-            registerThemed("card", btn)
-            registerThemed("textDim", btn, "TextColor3")
-            local origText = btn.Text
-            btn.MouseEnter:Connect(function() tween(btn, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end)
-            btn.MouseLeave:Connect(function() tween(btn, {BackgroundColor3 = CurrentTheme.card}, 0.15) end)
-            btn.MouseButton1Click:Connect(function()
-                local targetChar = nil
-                local cf = workspace:FindFirstChild("Characters")
-                if cf then
-                    local pf = cf:FindFirstChild("Players")
-                    if pf then targetChar = pf:FindFirstChild(player.Name) end
-                end
-                if not targetChar then targetChar = player.Character end
-                local myChar = getMyCharacter()
-                if targetChar and targetChar:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                    myChar.HumanoidRootPart.CFrame = targetChar.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
-                    btn.Text = "  ✅ Téléporté !"
-                    btn.TextColor3 = Color3.fromRGB(100, 255, 100)
-                    task.wait(1)
-                    btn.Text = origText
-                    btn.TextColor3 = CurrentTheme.textDim
-                else
-                    btn.Text = "  ❌ Introuvable"
-                    btn.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    task.wait(1)
-                    btn.Text = origText
-                    btn.TextColor3 = CurrentTheme.textDim
-                end
+    local function bG2()
+        clr() cP = "Teleport" uSH("Teleport")
+        G2 = Instance.new("Frame") G2.Parent = CA G2.BackgroundTransparency = 1 G2.Size = UDim2.new(1,0,1,0)
+        local sf = mkScroll(G2)
+        local tps = Instance.new("Frame") tps.Parent = sf tps.BackgroundColor3 = CurrentTheme.card tps.Size = UDim2.new(1,-6,0,195) tps.LayoutOrder = 1 makeCorner(tps, 10) makeStroke(tps, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", tps)
+        local tpt = Instance.new("TextLabel") tpt.Parent = tps tpt.BackgroundTransparency = 1 tpt.Position = UDim2.new(0,12,0,8) tpt.Size = UDim2.new(1,-24,0,22) tpt.Font = Enum.Font.GothamBold tpt.Text = "👥  Joueurs · auto-refresh" tpt.TextColor3 = CurrentTheme.textDim tpt.TextSize = 12 tpt.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", tpt, "TextColor3")
+        local pl = Instance.new("ScrollingFrame") pl.Parent = tps pl.BackgroundColor3 = CurrentTheme.cardInner pl.Position = UDim2.new(0,8,0,34) pl.Size = UDim2.new(1,-16,1,-42) pl.CanvasSize = UDim2.new(0,0,0,0) pl.ScrollBarThickness = 2 pl.ScrollBarImageColor3 = CurrentTheme.stroke pl.AutomaticCanvasSize = Enum.AutomaticSize.Y pl.BorderSizePixel = 0 makeCorner(pl, 6) registerThemed("cardInner", pl)
+        local pll = Instance.new("UIListLayout") pll.Parent = pl pll.SortOrder = Enum.SortOrder.LayoutOrder pll.Padding = UDim.new(0,3)
+        local plp = Instance.new("UIPadding") plp.Parent = pl plp.PaddingTop = UDim.new(0,4) plp.PaddingLeft = UDim.new(0,4) plp.PaddingRight = UDim.new(0,4) plp.PaddingBottom = UDim.new(0,4)
+        local function cpb(player)
+            if player == LocalPlayer then return end if pl:FindFirstChild("P_"..player.Name) then return end
+            local b = Instance.new("TextButton") b.Name = "P_"..player.Name b.Parent = pl b.BackgroundColor3 = CurrentTheme.card b.Size = UDim2.new(1,-6,0,30) b.Font = Enum.Font.GothamSemibold b.Text = "  🔹 "..player.DisplayName.."  @"..player.Name b.TextColor3 = CurrentTheme.textDim b.TextSize = 11 b.TextXAlignment = Enum.TextXAlignment.Left makeCorner(b, 6) registerThemed("card", b) registerThemed("textDim", b, "TextColor3")
+            local ot = b.Text
+            b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+            b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+            b.MouseButton1Click:Connect(function()
+                local tc local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then tc = pf:FindFirstChild(player.Name) end end
+                if not tc then tc = player.Character end local mc = getMyCharacter()
+                if tc and tc:FindFirstChild("HumanoidRootPart") and mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame = tc.HumanoidRootPart.CFrame * CFrame.new(0,0,3) b.Text = "  ✅ TP !" b.TextColor3 = Color3.fromRGB(80,220,120)
+                else b.Text = "  ❌ Introuvable" b.TextColor3 = Color3.fromRGB(255,80,80) end task.wait(1) b.Text = ot b.TextColor3 = CurrentTheme.textDim
             end)
         end
-        for _, p in ipairs(Players:GetPlayers()) do createPlayerBtn(p) end
-        local addConn = Players.PlayerAdded:Connect(function(p)
-            task.wait(1)
-            if PlayerList and PlayerList.Parent then createPlayerBtn(p) end
-        end)
-        local removeConn = Players.PlayerRemoving:Connect(function(p)
-            if PlayerList and PlayerList.Parent then
-                local b = PlayerList:FindFirstChild("P_" .. p.Name)
-                if b then b:Destroy() end
-            end
-        end)
-        GUI2.AncestryChanged:Connect(function()
-            if not GUI2.Parent then addConn:Disconnect() removeConn:Disconnect() end
-        end)
-        local SeasLabel = Instance.new("TextLabel")
-        SeasLabel.Parent = ScrollFrame
-        SeasLabel.BackgroundTransparency = 1
-        SeasLabel.Size = UDim2.new(1, -10, 0, 25)
-        SeasLabel.Font = Enum.Font.GothamBold
-        SeasLabel.Text = "🌊 Zones par Sea"
-        SeasLabel.TextColor3 = CurrentTheme.textDim
-        SeasLabel.TextSize = 14
-        SeasLabel.TextXAlignment = Enum.TextXAlignment.Left
-        SeasLabel.LayoutOrder = 2
-        registerThemed("textDim", SeasLabel, "TextColor3")
-        local Sea1Btn = Instance.new("TextButton")
-        Sea1Btn.Parent = ScrollFrame
-        Sea1Btn.BackgroundColor3 = Color3.fromRGB(30, 40, 55)
-        Sea1Btn.Size = UDim2.new(1, -10, 0, 42)
-        Sea1Btn.Font = Enum.Font.GothamBold
-        Sea1Btn.Text = "  🌊 Sea 1  →  (3 Farms, 1 Boss, 4 Zones)"
-        Sea1Btn.TextColor3 = Color3.fromRGB(130, 190, 255)
-        Sea1Btn.TextSize = 12
-        Sea1Btn.TextXAlignment = Enum.TextXAlignment.Left
-        Sea1Btn.LayoutOrder = 3
-        makeCorner(Sea1Btn, 6)
-        makeStroke(Sea1Btn, Color3.fromRGB(60, 80, 110), 1)
-        hoverEffect(Sea1Btn, Color3.fromRGB(30, 40, 55), Color3.fromRGB(40, 55, 75))
-        Sea1Btn.MouseButton1Click:Connect(function() GUI_Sea1 = buildSeaGui(Sea1Data, buildGUI2) end)
-        local Sea2Btn = Instance.new("TextButton")
-        Sea2Btn.Parent = ScrollFrame
-        Sea2Btn.BackgroundColor3 = Color3.fromRGB(35, 45, 30)
-        Sea2Btn.Size = UDim2.new(1, -10, 0, 42)
-        Sea2Btn.Font = Enum.Font.GothamBold
-        Sea2Btn.Text = "  🌊 Sea 2  →  (3 Farms, 2 Boss, 3 Zones)"
-        Sea2Btn.TextColor3 = Color3.fromRGB(140, 220, 130)
-        Sea2Btn.TextSize = 12
-        Sea2Btn.TextXAlignment = Enum.TextXAlignment.Left
-        Sea2Btn.LayoutOrder = 4
-        makeCorner(Sea2Btn, 6)
-        makeStroke(Sea2Btn, Color3.fromRGB(60, 100, 55), 1)
-        hoverEffect(Sea2Btn, Color3.fromRGB(35, 45, 30), Color3.fromRGB(45, 60, 40))
-        Sea2Btn.MouseButton1Click:Connect(function() GUI_Sea2 = buildSeaGui(Sea2Data, buildGUI2) end)
-        local Sea3Btn = Instance.new("TextButton")
-        Sea3Btn.Parent = ScrollFrame
-        Sea3Btn.BackgroundColor3 = Color3.fromRGB(50, 35, 35)
-        Sea3Btn.Size = UDim2.new(1, -10, 0, 42)
-        Sea3Btn.Font = Enum.Font.GothamBold
-        Sea3Btn.Text = "  🌊 Sea 3  →  (3 Farms, 1 Boss, 4 Zones + V2)"
-        Sea3Btn.TextColor3 = Color3.fromRGB(255, 150, 130)
-        Sea3Btn.TextSize = 12
-        Sea3Btn.TextXAlignment = Enum.TextXAlignment.Left
-        Sea3Btn.LayoutOrder = 5
-        makeCorner(Sea3Btn, 6)
-        makeStroke(Sea3Btn, Color3.fromRGB(110, 60, 55), 1)
-        hoverEffect(Sea3Btn, Color3.fromRGB(50, 35, 35), Color3.fromRGB(70, 45, 45))
-        Sea3Btn.MouseButton1Click:Connect(function() GUI_Sea3 = buildSeaGui(Sea3Data, buildGUI2) end)
+        for _, p in ipairs(Players:GetPlayers()) do cpb(p) end
+        local ac = Players.PlayerAdded:Connect(function(p) task.wait(1) if pl and pl.Parent then cpb(p) end end)
+        local rc = Players.PlayerRemoving:Connect(function(p) if pl and pl.Parent then local b = pl:FindFirstChild("P_"..p.Name) if b then b:Destroy() end end end)
+        G2.AncestryChanged:Connect(function() if not G2.Parent then ac:Disconnect() rc:Disconnect() end end)
+
+        local si = Instance.new("TextLabel") si.Parent = sf si.BackgroundColor3 = CurrentTheme.card si.Size = UDim2.new(1,-6,0,32) si.Font = Enum.Font.GothamBold si.TextSize = 12 si.LayoutOrder = 2 makeCorner(si, 8) registerThemed("card", si)
+        local sc = {[1]=Color3.fromRGB(100,180,255),[2]=Color3.fromRGB(100,220,130),[3]=Color3.fromRGB(255,140,120)}
+        local st = {[1]="  🌊 Sea 1 · Scientist",[2]="  🌊 Sea 2 · Charlie",[3]="  🌊 Sea 3 · Unknown"}
+        si.Text = st[DetectedSea] si.TextColor3 = sc[DetectedSea] si.TextXAlignment = Enum.TextXAlignment.Left
+
+        local csd = DetectedSea == 1 and Sea1Data or DetectedSea == 2 and Sea2Data or Sea3Data
+        local o = 3
+        mkSec(sf, "━━  AUTO FARM  ━━", o) o=o+1
+        for _,f in ipairs(csd.farms) do mkTP(sf,f.name,f.x,f.y,f.z,o,"🌾") o=o+1 end
+        mkSec(sf, "━━  BOSS  ━━", o) o=o+1
+        for _,b in ipairs(csd.bosses) do mkTP(sf,b.name,b.x,b.y,b.z,o,"👹") o=o+1 end
+        mkSec(sf, "━━  ZONES  ━━", o) o=o+1
+        for _,z in ipairs(csd.zones) do mkTP(sf,z.name,z.x,z.y,z.z,o,z.icon or "📍") o=o+1 end
+        if csd.extraText then
+            local ef = Instance.new("Frame") ef.Parent = sf ef.BackgroundColor3 = Color3.fromRGB(28,28,18) ef.Size = UDim2.new(1,-6,0,110) ef.LayoutOrder = o makeCorner(ef, 8) makeStroke(ef, Color3.fromRGB(80,70,30), 1)
+            local el = Instance.new("TextLabel") el.Parent = ef el.BackgroundTransparency = 1 el.Position = UDim2.new(0,10,0,8) el.Size = UDim2.new(1,-20,1,-16) el.Font = Enum.Font.Gotham el.Text = csd.extraText el.TextColor3 = Color3.fromRGB(200,180,100) el.TextSize = 10 el.TextWrapped = true el.TextYAlignment = Enum.TextYAlignment.Top
+        end
     end
 
-    local function buildGUI3()
-        clearAllPages()
-        GUI3 = Instance.new("Frame")
-        GUI3.Name = "GUI3_Auto"
-        GUI3.Parent = ContentArea
-        GUI3.BackgroundTransparency = 1
-        GUI3.Size = UDim2.new(1, 0, 1, 0)
-        local AF = Instance.new("ScrollingFrame")
-        AF.Parent = GUI3
-        AF.BackgroundColor3 = CurrentTheme.content
-        AF.Size = UDim2.new(1, 0, 1, 0)
-        AF.BorderSizePixel = 0
-        AF.CanvasSize = UDim2.new(0, 0, 0, 0)
-        AF.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        AF.ScrollBarThickness = 4
-        AF.ScrollBarImageColor3 = CurrentTheme.stroke
-        makeCorner(AF, 8)
-        makeStroke(AF, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("content", AF)
-        local Layout = Instance.new("UIListLayout")
-        Layout.Parent = AF
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 8)
-        local Pad = Instance.new("UIPadding")
-        Pad.Parent = AF
-        Pad.PaddingTop = UDim.new(0, 12)
-        Pad.PaddingLeft = UDim.new(0, 15)
-        Pad.PaddingRight = UDim.new(0, 15)
-        Pad.PaddingBottom = UDim.new(0, 12)
-        local AT = Instance.new("TextLabel")
-        AT.Parent = AF
-        AT.BackgroundTransparency = 1
-        AT.Size = UDim2.new(1, -10, 0, 25)
-        AT.Font = Enum.Font.GothamBold
-        AT.Text = "⌨️ Auto Keybind"
-        AT.TextColor3 = CurrentTheme.text
-        AT.TextSize = 16
-        AT.TextXAlignment = Enum.TextXAlignment.Left
-        AT.LayoutOrder = 0
-        registerThemed("text", AT, "TextColor3")
-        local AD = Instance.new("TextLabel")
-        AD.Parent = AF
-        AD.BackgroundTransparency = 1
-        AD.Size = UDim2.new(1, -10, 0, 30)
-        AD.Font = Enum.Font.Gotham
-        AD.Text = "Séquence : 1 → 2 → 3 → 4 → 5 → G\nChaque touche + clic souris gauche"
-        AD.TextColor3 = CurrentTheme.textDim
-        AD.TextSize = 11
-        AD.TextXAlignment = Enum.TextXAlignment.Left
-        AD.TextYAlignment = Enum.TextYAlignment.Top
-        AD.LayoutOrder = 1
-        registerThemed("textDim", AD, "TextColor3")
-        local KB = Instance.new("TextButton")
-        KB.Parent = AF
-        KB.BackgroundColor3 = CurrentTheme.card
-        KB.Size = UDim2.new(1, -10, 0, 50)
-        KB.Font = Enum.Font.GothamBold
-        KB.Text = "⌨️🖱️ Auto Keybind : OFF"
-        KB.TextColor3 = Color3.fromRGB(255, 100, 100)
-        KB.TextSize = 15
-        KB.LayoutOrder = 2
-        makeCorner(KB, 6)
-        makeStroke(KB, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", KB)
-        KB.MouseEnter:Connect(function() tween(KB, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end)
-        KB.MouseLeave:Connect(function() tween(KB, {BackgroundColor3 = CurrentTheme.card}, 0.15) end)
-        local keybindSequence = {
-            Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three,
-            Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.G
-        }
-        KB.MouseButton1Click:Connect(function()
-            AutoKeybindActive = not AutoKeybindActive
-            if AutoKeybindActive then
-                KB.Text = "⌨️🖱️ Auto Keybind : ON"
-                KB.TextColor3 = Color3.fromRGB(100, 255, 100)
+    local function bG3()
+        clr()
+        G3 = Instance.new("Frame") G3.Parent = CA G3.BackgroundTransparency = 1 G3.Size = UDim2.new(1,0,1,0)
+        local sf = mkScroll(G3)
+
+        mkSec(sf, "🔥  ULTIMATE FARM", 0)
+        local ufd = Instance.new("TextLabel") ufd.Parent = sf ufd.BackgroundTransparency = 1 ufd.Size = UDim2.new(1,-6,0,36) ufd.Font = Enum.Font.Gotham ufd.Text = "Scan auto du Backpack · Skip les attaques en cooldown\nAppuie sur la touche + clic souris pour chaque attaque dispo" ufd.TextColor3 = Color3.fromRGB(90,90,100) ufd.TextSize = 10 ufd.TextXAlignment = Enum.TextXAlignment.Left ufd.TextYAlignment = Enum.TextYAlignment.Top ufd.LayoutOrder = 1
+
+        local ufBtn = Instance.new("TextButton") ufBtn.Parent = sf ufBtn.BackgroundColor3 = CurrentTheme.card ufBtn.Size = UDim2.new(1,-6,0,48) ufBtn.Font = Enum.Font.GothamBold ufBtn.Text = "🔥  Ultimate Farm · OFF" ufBtn.TextColor3 = Color3.fromRGB(255,80,80) ufBtn.TextSize = 14 ufBtn.LayoutOrder = 2 makeCorner(ufBtn, 10) makeStroke(ufBtn, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", ufBtn)
+        ufBtn.MouseEnter:Connect(function() tween(ufBtn, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+        ufBtn.MouseLeave:Connect(function() tween(ufBtn, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+
+        local ufStatus = Instance.new("Frame") ufStatus.Parent = sf ufStatus.BackgroundColor3 = CurrentTheme.cardInner ufStatus.Size = UDim2.new(1,-6,0,100) ufStatus.LayoutOrder = 3 makeCorner(ufStatus, 8) makeStroke(ufStatus, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("cardInner", ufStatus)
+        local ufTitle = Instance.new("TextLabel") ufTitle.Parent = ufStatus ufTitle.BackgroundTransparency = 1 ufTitle.Position = UDim2.new(0,10,0,6) ufTitle.Size = UDim2.new(1,-20,0,16) ufTitle.Font = Enum.Font.GothamBold ufTitle.Text = "📊  ATTAQUES DÉTECTÉES" ufTitle.TextColor3 = CurrentTheme.textDim ufTitle.TextSize = 10 ufTitle.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", ufTitle, "TextColor3")
+        local ufList = Instance.new("TextLabel") ufList.Parent = ufStatus ufList.BackgroundTransparency = 1 ufList.Position = UDim2.new(0,10,0,24) ufList.Size = UDim2.new(1,-20,1,-30) ufList.Font = Enum.Font.Gotham ufList.Text = "En attente d'activation..." ufList.TextColor3 = Color3.fromRGB(90,90,100) ufList.TextSize = 10 ufList.TextWrapped = true ufList.TextYAlignment = Enum.TextYAlignment.Top ufList.TextXAlignment = Enum.TextXAlignment.Left
+
+        local ufLog = Instance.new("TextLabel") ufLog.Parent = sf ufLog.BackgroundColor3 = CurrentTheme.card ufLog.Size = UDim2.new(1,-6,0,36) ufLog.Font = Enum.Font.Gotham ufLog.Text = "  🔴 Ultimate Farm inactif" ufLog.TextColor3 = CurrentTheme.textDim ufLog.TextSize = 10 ufLog.TextXAlignment = Enum.TextXAlignment.Left ufLog.LayoutOrder = 4 makeCorner(ufLog, 8) registerThemed("card", ufLog) registerThemed("textDim", ufLog, "TextColor3")
+
+        ufBtn.MouseButton1Click:Connect(function()
+            UltimateFarmActive = not UltimateFarmActive
+            if UltimateFarmActive then
+                ufBtn.Text = "🔥  Ultimate Farm · ON" ufBtn.TextColor3 = Color3.fromRGB(80,220,120)
                 task.spawn(function()
-                    while AutoKeybindActive do
-                        for _, kc in ipairs(keybindSequence) do
-                            if not AutoKeybindActive then break end
-                            simulateKeyAndClick(kc)
-                            task.wait(KeybindDelay)
-                        end
-                        if AutoKeybindActive then task.wait(0.3) end
-                    end
-                end)
-            else
-                KB.Text = "⌨️🖱️ Auto Keybind : OFF"
-                KB.TextColor3 = Color3.fromRGB(255, 100, 100)
-            end
-        end)
-        local Sep1 = Instance.new("Frame")
-        Sep1.Parent = AF
-        Sep1.BackgroundColor3 = CurrentTheme.separator
-        Sep1.Size = UDim2.new(0.95, 0, 0, 1)
-        Sep1.BorderSizePixel = 0
-        Sep1.LayoutOrder = 3
-        registerThemed("separator", Sep1)
-        local StayTitle = Instance.new("TextLabel")
-        StayTitle.Parent = AF
-        StayTitle.BackgroundTransparency = 1
-        StayTitle.Size = UDim2.new(1, -10, 0, 22)
-        StayTitle.Font = Enum.Font.GothamBold
-        StayTitle.Text = "📌 Stay Position (rester sur place)"
-        StayTitle.TextColor3 = CurrentTheme.textDim
-        StayTitle.TextSize = 13
-        StayTitle.TextXAlignment = Enum.TextXAlignment.Left
-        StayTitle.LayoutOrder = 4
-        registerThemed("textDim", StayTitle, "TextColor3")
-        local StayDesc = Instance.new("TextLabel")
-        StayDesc.Parent = AF
-        StayDesc.BackgroundTransparency = 1
-        StayDesc.Size = UDim2.new(1, -10, 0, 28)
-        StayDesc.Font = Enum.Font.Gotham
-        StayDesc.Text = "Quand activé, vous êtes TP en boucle à votre position actuelle.\nLa position est mise à jour à chaque activation."
-        StayDesc.TextColor3 = Color3.fromRGB(90, 90, 90)
-        StayDesc.TextSize = 10
-        StayDesc.TextXAlignment = Enum.TextXAlignment.Left
-        StayDesc.TextYAlignment = Enum.TextYAlignment.Top
-        StayDesc.LayoutOrder = 5
-        local StayContainer = Instance.new("Frame")
-        StayContainer.Parent = AF
-        StayContainer.BackgroundColor3 = CurrentTheme.card
-        StayContainer.Size = UDim2.new(1, -10, 0, 55)
-        StayContainer.LayoutOrder = 6
-        makeCorner(StayContainer, 6)
-        makeStroke(StayContainer, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", StayContainer)
-        local StayCheckbox = Instance.new("TextButton")
-        StayCheckbox.Parent = StayContainer
-        StayCheckbox.BackgroundColor3 = CurrentTheme.cardInner
-        StayCheckbox.Position = UDim2.new(0, 12, 0.5, -12)
-        StayCheckbox.Size = UDim2.new(0, 24, 0, 24)
-        StayCheckbox.Font = Enum.Font.GothamBold
-        StayCheckbox.Text = ""
-        StayCheckbox.TextColor3 = Color3.fromRGB(100, 255, 100)
-        StayCheckbox.TextSize = 16
-        makeCorner(StayCheckbox, 4)
-        makeStroke(StayCheckbox, CurrentTheme.strokeLight, 1.5, "strokeLight")
-        registerThemed("cardInner", StayCheckbox)
-        local StayLabel = Instance.new("TextLabel")
-        StayLabel.Parent = StayContainer
-        StayLabel.BackgroundTransparency = 1
-        StayLabel.Position = UDim2.new(0, 45, 0, 5)
-        StayLabel.Size = UDim2.new(1, -55, 0, 20)
-        StayLabel.Font = Enum.Font.GothamBold
-        StayLabel.Text = "📌 Stay Position : OFF"
-        StayLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-        StayLabel.TextSize = 13
-        StayLabel.TextXAlignment = Enum.TextXAlignment.Left
-        local StayPosLabel = Instance.new("TextLabel")
-        StayPosLabel.Parent = StayContainer
-        StayPosLabel.BackgroundTransparency = 1
-        StayPosLabel.Position = UDim2.new(0, 45, 0, 28)
-        StayPosLabel.Size = UDim2.new(1, -55, 0, 16)
-        StayPosLabel.Font = Enum.Font.Gotham
-        StayPosLabel.Text = "Position : aucune"
-        StayPosLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
-        StayPosLabel.TextSize = 9
-        StayPosLabel.TextXAlignment = Enum.TextXAlignment.Left
-        StayCheckbox.MouseButton1Click:Connect(function()
-            StayPositionActive = not StayPositionActive
-            if StayPositionActive then
-                local myChar = getMyCharacter()
-                if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-                    StayPositionCFrame = myChar.HumanoidRootPart.CFrame
-                    local pos = StayPositionCFrame.Position
-                    StayPosLabel.Text = string.format("Position : %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z)
-                    StayCheckbox.Text = "✓"
-                    StayLabel.Text = "📌 Stay Position : ON"
-                    StayLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-                    StayPosLabel.TextColor3 = Color3.fromRGB(100, 200, 100)
-                    StayPositionConnection = RunService.Heartbeat:Connect(function()
-                        if StayPositionActive and StayPositionCFrame then
-                            local c = getMyCharacter()
-                            if c and c:FindFirstChild("HumanoidRootPart") then
-                                c.HumanoidRootPart.CFrame = StayPositionCFrame
+                    while UltimateFarmActive and G3 and G3.Parent do
+                        local attacks = getBackpackAttacks()
+
+                        if #attacks == 0 then
+                            ufList.Text = "Aucune attaque trouvée dans le Backpack"
+                            ufList.TextColor3 = Color3.fromRGB(255,80,80)
+                            ufLog.Text = "  ⚠️ Backpack vide"
+                            task.wait(1)
+                        else
+                            local listText = ""
+                            for i, atk in ipairs(attacks) do
+                                local onCD = isOnCooldown(atk.name)
+                                local status = onCD and "🔴 CD" or "🟢 OK"
+                                listText = listText .. atk.name .. " [" .. atk.key .. "] " .. status
+                                if i < #attacks then listText = listText .. "\n" end
                             end
+                            ufList.Text = listText
+                            ufList.TextColor3 = Color3.fromRGB(170,185,210)
+
+                            local usedAny = false
+                            for _, atk in ipairs(attacks) do
+                                if not UltimateFarmActive then break end
+
+                                if not isOnCooldown(atk.name) then
+                                    local kc = stringToKeyCode(atk.key)
+                                    if kc then
+                                        ufLog.Text = "  🟢 Utilisation : " .. atk.name .. " [" .. atk.key .. "]"
+                                        ufLog.TextColor3 = Color3.fromRGB(80,220,120)
+                                        simulateKeyAndClick(kc)
+                                        usedAny = true
+                                        task.wait(KeybindDelay)
+                                    end
+                                else
+                                    ufLog.Text = "  ⏭️ Skip : " .. atk.name .. " (cooldown)"
+                                    ufLog.TextColor3 = Color3.fromRGB(255,180,60)
+                                end
+                            end
+
+                            if not usedAny then
+                                ufLog.Text = "  ⏳ Toutes les attaques en cooldown..."
+                                ufLog.TextColor3 = Color3.fromRGB(255,180,60)
+                            end
+
+                            task.wait(0.2)
                         end
-                    end)
-                else
-                    StayPositionActive = false
-                    StayPosLabel.Text = "Position : personnage introuvable"
-                    StayPosLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                end
+                    end
+                end)
             else
-                StayCheckbox.Text = ""
-                StayLabel.Text = "📌 Stay Position : OFF"
-                StayLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-                StayPosLabel.Text = "Position : aucune"
-                StayPosLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
-                StayPositionCFrame = nil
-                if StayPositionConnection then StayPositionConnection:Disconnect() StayPositionConnection = nil end
+                ufBtn.Text = "🔥  Ultimate Farm · OFF" ufBtn.TextColor3 = Color3.fromRGB(255,80,80)
+                ufLog.Text = "  🔴 Ultimate Farm inactif" ufLog.TextColor3 = CurrentTheme.textDim
+                ufList.Text = "En attente d'activation..." ufList.TextColor3 = Color3.fromRGB(90,90,100)
             end
         end)
-        local Sep2 = Instance.new("Frame")
-        Sep2.Parent = AF
-        Sep2.BackgroundColor3 = CurrentTheme.separator
-        Sep2.Size = UDim2.new(0.95, 0, 0, 1)
-        Sep2.BorderSizePixel = 0
-        Sep2.LayoutOrder = 7
-        registerThemed("separator", Sep2)
-        local ST = Instance.new("TextLabel")
-        ST.Parent = AF
-        ST.BackgroundTransparency = 1
-        ST.Size = UDim2.new(1, -10, 0, 22)
-        ST.Font = Enum.Font.GothamBold
-        ST.Text = "⚙️ Paramètres de timing"
-        ST.TextColor3 = CurrentTheme.textDim
-        ST.TextSize = 13
-        ST.TextXAlignment = Enum.TextXAlignment.Left
-        ST.LayoutOrder = 8
-        registerThemed("textDim", ST, "TextColor3")
-        local PC = Instance.new("Frame")
-        PC.Parent = AF
-        PC.BackgroundTransparency = 1
-        PC.Size = UDim2.new(1, -10, 0, 100)
-        PC.LayoutOrder = 9
-        local DB = Instance.new("Frame")
-        DB.Parent = PC
-        DB.BackgroundColor3 = CurrentTheme.card
-        DB.Size = UDim2.new(0.48, 0, 0, 95)
-        makeCorner(DB, 6)
-        makeStroke(DB, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", DB)
-        local DL = Instance.new("TextLabel")
-        DL.Parent = DB
-        DL.BackgroundTransparency = 1
-        DL.Position = UDim2.new(0, 10, 0, 8)
-        DL.Size = UDim2.new(1, -20, 0, 16)
-        DL.Font = Enum.Font.GothamBold
-        DL.Text = "⏱️ Délai entre touches"
-        DL.TextColor3 = CurrentTheme.textDim
-        DL.TextSize = 10
-        DL.TextXAlignment = Enum.TextXAlignment.Left
-        registerThemed("textDim", DL, "TextColor3")
-        local DS = Instance.new("TextLabel")
-        DS.Parent = DB
-        DS.BackgroundTransparency = 1
-        DS.Position = UDim2.new(0, 10, 0, 24)
-        DS.Size = UDim2.new(1, -20, 0, 14)
-        DS.Font = Enum.Font.Gotham
-        DS.Text = "Temps d'attente (sec)"
-        DS.TextColor3 = Color3.fromRGB(90, 90, 90)
-        DS.TextSize = 9
-        DS.TextXAlignment = Enum.TextXAlignment.Left
-        local DI = Instance.new("TextBox")
-        DI.Parent = DB
-        DI.BackgroundColor3 = CurrentTheme.input
-        DI.Position = UDim2.new(0.1, 0, 0, 50)
-        DI.Size = UDim2.new(0.8, 0, 0, 32)
-        DI.Font = Enum.Font.GothamBold
-        DI.Text = tostring(KeybindDelay)
-        DI.TextColor3 = CurrentTheme.accent
-        DI.TextSize = 15
-        DI.PlaceholderText = "0.15"
-        DI.PlaceholderColor3 = Color3.fromRGB(50, 50, 50)
-        DI.ClearTextOnFocus = false
-        makeCorner(DI, 4)
-        makeStroke(DI, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("input", DI)
-        registerThemed("accent", DI, "TextColor3")
-        DI.FocusLost:Connect(function()
-            local val = tonumber(DI.Text)
-            if val and val >= 0.01 and val <= 10 then
-                KeybindDelay = val
-                DI.TextColor3 = Color3.fromRGB(100, 255, 100)
-                task.wait(0.5)
-                DI.TextColor3 = CurrentTheme.accent
-            else
-                DI.Text = tostring(KeybindDelay)
-                DI.TextColor3 = Color3.fromRGB(255, 100, 100)
-                task.wait(0.5)
-                DI.TextColor3 = CurrentTheme.accent
-            end
+
+        local s0 = Instance.new("Frame") s0.Parent = sf s0.BackgroundColor3 = CurrentTheme.separator s0.Size = UDim2.new(0.92,0,0,1) s0.BorderSizePixel = 0 s0.LayoutOrder = 5 registerThemed("separator", s0)
+
+        mkSec(sf, "⌨️  AUTO KEYBIND", 6)
+        local ad = Instance.new("TextLabel") ad.Parent = sf ad.BackgroundTransparency = 1 ad.Size = UDim2.new(1,-6,0,22) ad.Font = Enum.Font.Gotham ad.Text = "Séquence fixe : 1 → 2 → 3 → 4 → 5 → G + clic souris" ad.TextColor3 = Color3.fromRGB(90,90,100) ad.TextSize = 10 ad.TextXAlignment = Enum.TextXAlignment.Left ad.LayoutOrder = 7
+
+        local kb = Instance.new("TextButton") kb.Parent = sf kb.BackgroundColor3 = CurrentTheme.card kb.Size = UDim2.new(1,-6,0,48) kb.Font = Enum.Font.GothamBold kb.Text = "⌨️🖱️  Auto Keybind · OFF" kb.TextColor3 = Color3.fromRGB(255,80,80) kb.TextSize = 14 kb.LayoutOrder = 8 makeCorner(kb, 10) makeStroke(kb, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", kb)
+        kb.MouseEnter:Connect(function() tween(kb, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+        kb.MouseLeave:Connect(function() tween(kb, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+        local ks = {Enum.KeyCode.One,Enum.KeyCode.Two,Enum.KeyCode.Three,Enum.KeyCode.Four,Enum.KeyCode.Five,Enum.KeyCode.G}
+        kb.MouseButton1Click:Connect(function()
+            AutoKeybindActive = not AutoKeybindActive
+            if AutoKeybindActive then kb.Text = "⌨️🖱️  Auto Keybind · ON" kb.TextColor3 = Color3.fromRGB(80,220,120)
+                task.spawn(function() while AutoKeybindActive do for _,kc in ipairs(ks) do if not AutoKeybindActive then break end simulateKeyAndClick(kc) task.wait(KeybindDelay) end if AutoKeybindActive then task.wait(0.3) end end end)
+            else kb.Text = "⌨️🖱️  Auto Keybind · OFF" kb.TextColor3 = Color3.fromRGB(255,80,80) end
         end)
-        local HB = Instance.new("Frame")
-        HB.Parent = PC
-        HB.BackgroundColor3 = CurrentTheme.card
-        HB.Position = UDim2.new(0.52, 0, 0, 0)
-        HB.Size = UDim2.new(0.48, 0, 0, 95)
-        makeCorner(HB, 6)
-        makeStroke(HB, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", HB)
-        local HL = Instance.new("TextLabel")
-        HL.Parent = HB
-        HL.BackgroundTransparency = 1
-        HL.Position = UDim2.new(0, 10, 0, 8)
-        HL.Size = UDim2.new(1, -20, 0, 16)
-        HL.Font = Enum.Font.GothamBold
-        HL.Text = "✋ Maintien touche"
-        HL.TextColor3 = CurrentTheme.textDim
-        HL.TextSize = 10
-        HL.TextXAlignment = Enum.TextXAlignment.Left
-        registerThemed("textDim", HL, "TextColor3")
-        local HS = Instance.new("TextLabel")
-        HS.Parent = HB
-        HS.BackgroundTransparency = 1
-        HS.Position = UDim2.new(0, 10, 0, 24)
-        HS.Size = UDim2.new(1, -20, 0, 14)
-        HS.Font = Enum.Font.Gotham
-        HS.Text = "Durée appui (sec)"
-        HS.TextColor3 = Color3.fromRGB(90, 90, 90)
-        HS.TextSize = 9
-        HS.TextXAlignment = Enum.TextXAlignment.Left
-        local HI = Instance.new("TextBox")
-        HI.Parent = HB
-        HI.BackgroundColor3 = CurrentTheme.input
-        HI.Position = UDim2.new(0.1, 0, 0, 50)
-        HI.Size = UDim2.new(0.8, 0, 0, 32)
-        HI.Font = Enum.Font.GothamBold
-        HI.Text = tostring(KeybindHoldTime)
-        HI.TextColor3 = CurrentTheme.accent
-        HI.TextSize = 15
-        HI.PlaceholderText = "0.05"
-        HI.PlaceholderColor3 = Color3.fromRGB(50, 50, 50)
-        HI.ClearTextOnFocus = false
-        makeCorner(HI, 4)
-        makeStroke(HI, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("input", HI)
-        registerThemed("accent", HI, "TextColor3")
-        HI.FocusLost:Connect(function()
-            local val = tonumber(HI.Text)
-            if val and val >= 0.01 and val <= 10 then
-                KeybindHoldTime = val
-                HI.TextColor3 = Color3.fromRGB(100, 255, 100)
-                task.wait(0.5)
-                HI.TextColor3 = CurrentTheme.accent
-            else
-                HI.Text = tostring(KeybindHoldTime)
-                HI.TextColor3 = Color3.fromRGB(255, 100, 100)
-                task.wait(0.5)
-                HI.TextColor3 = CurrentTheme.accent
-            end
+
+        local s1 = Instance.new("Frame") s1.Parent = sf s1.BackgroundColor3 = CurrentTheme.separator s1.Size = UDim2.new(0.92,0,0,1) s1.BorderSizePixel = 0 s1.LayoutOrder = 9 registerThemed("separator", s1)
+
+        mkSec(sf, "📌  STAY POSITION", 10)
+        local sd2 = Instance.new("TextLabel") sd2.Parent = sf sd2.BackgroundTransparency = 1 sd2.Size = UDim2.new(1,-6,0,18) sd2.Font = Enum.Font.Gotham sd2.Text = "TP en boucle à votre position · mis à jour à chaque activation" sd2.TextColor3 = Color3.fromRGB(90,90,100) sd2.TextSize = 10 sd2.TextXAlignment = Enum.TextXAlignment.Left sd2.LayoutOrder = 11
+
+        local sc2 = Instance.new("Frame") sc2.Parent = sf sc2.BackgroundColor3 = CurrentTheme.card sc2.Size = UDim2.new(1,-6,0,52) sc2.LayoutOrder = 12 makeCorner(sc2, 10) makeStroke(sc2, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", sc2)
+        local scb = Instance.new("TextButton") scb.Parent = sc2 scb.BackgroundColor3 = CurrentTheme.cardInner scb.Position = UDim2.new(0,12,0.5,-11) scb.Size = UDim2.new(0,22,0,22) scb.Font = Enum.Font.GothamBold scb.Text = "" scb.TextColor3 = Color3.fromRGB(80,220,120) scb.TextSize = 15 makeCorner(scb, 5) makeStroke(scb, CurrentTheme.strokeLight, 1.5, "strokeLight") registerThemed("cardInner", scb)
+        local sl2 = Instance.new("TextLabel") sl2.Parent = sc2 sl2.BackgroundTransparency = 1 sl2.Position = UDim2.new(0,42,0,5) sl2.Size = UDim2.new(1,-52,0,18) sl2.Font = Enum.Font.GothamBold sl2.Text = "📌 Stay · OFF" sl2.TextColor3 = Color3.fromRGB(255,80,80) sl2.TextSize = 12 sl2.TextXAlignment = Enum.TextXAlignment.Left
+        local sp2 = Instance.new("TextLabel") sp2.Parent = sc2 sp2.BackgroundTransparency = 1 sp2.Position = UDim2.new(0,42,0,26) sp2.Size = UDim2.new(1,-52,0,14) sp2.Font = Enum.Font.Gotham sp2.Text = "Position : aucune" sp2.TextColor3 = Color3.fromRGB(80,80,90) sp2.TextSize = 9 sp2.TextXAlignment = Enum.TextXAlignment.Left
+        scb.MouseButton1Click:Connect(function()
+            StayPositionActive = not StayPositionActive
+            if StayPositionActive then local mc = getMyCharacter()
+                if mc and mc:FindFirstChild("HumanoidRootPart") then StayPositionCFrame = mc.HumanoidRootPart.CFrame local pos = StayPositionCFrame.Position
+                    sp2.Text = string.format("%.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z) scb.Text = "✓" sl2.Text = "📌 Stay · ON" sl2.TextColor3 = Color3.fromRGB(80,220,120) sp2.TextColor3 = Color3.fromRGB(80,200,110)
+                    StayPositionConnection = RunService.Heartbeat:Connect(function() if StayPositionActive and StayPositionCFrame then local c = getMyCharacter() if c and c:FindFirstChild("HumanoidRootPart") then c.HumanoidRootPart.CFrame = StayPositionCFrame end end end)
+                else StayPositionActive = false sp2.Text = "Introuvable" sp2.TextColor3 = Color3.fromRGB(255,80,80) end
+            else scb.Text = "" sl2.Text = "📌 Stay · OFF" sl2.TextColor3 = Color3.fromRGB(255,80,80) sp2.Text = "Position : aucune" sp2.TextColor3 = Color3.fromRGB(80,80,90) StayPositionCFrame = nil if StayPositionConnection then StayPositionConnection:Disconnect() StayPositionConnection = nil end end
         end)
-        local CV = Instance.new("TextLabel")
-        CV.Parent = AF
-        CV.BackgroundTransparency = 1
-        CV.Size = UDim2.new(1, -10, 0, 20)
-        CV.Font = Enum.Font.Gotham
-        CV.TextColor3 = Color3.fromRGB(80, 80, 80)
-        CV.TextSize = 10
-        CV.TextXAlignment = Enum.TextXAlignment.Left
-        CV.LayoutOrder = 10
-        local SB2 = Instance.new("Frame")
-        SB2.Parent = AF
-        SB2.BackgroundColor3 = CurrentTheme.card
-        SB2.Size = UDim2.new(1, -10, 0, 50)
-        SB2.LayoutOrder = 11
-        makeCorner(SB2, 6)
-        makeStroke(SB2, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", SB2)
-        local SL2 = Instance.new("TextLabel")
-        SL2.Parent = SB2
-        SL2.BackgroundTransparency = 1
-        SL2.Position = UDim2.new(0, 10, 0, 0)
-        SL2.Size = UDim2.new(1, -20, 1, 0)
-        SL2.Font = Enum.Font.Gotham
-        SL2.TextColor3 = CurrentTheme.textDim
-        SL2.TextSize = 11
-        SL2.TextWrapped = true
-        registerThemed("textDim", SL2, "TextColor3")
-        task.spawn(function()
-            while GUI3 and GUI3.Parent do
-                CV.Text = string.format("Valeurs → Délai: %.3fs | Maintien: %.3fs", KeybindDelay, KeybindHoldTime)
-                if AutoKeybindActive then
-                    SL2.Text = "🟢 Auto Keybind actif — Touche + Clic en cours..."
-                    SL2.TextColor3 = Color3.fromRGB(100, 220, 100)
-                else
-                    SL2.Text = "🔴 Auto Keybind inactif — En attente"
-                    SL2.TextColor3 = CurrentTheme.textDim
-                end
-                task.wait(0.3)
-            end
-        end)
+
+        local s2 = Instance.new("Frame") s2.Parent = sf s2.BackgroundColor3 = CurrentTheme.separator s2.Size = UDim2.new(0.92,0,0,1) s2.BorderSizePixel = 0 s2.LayoutOrder = 13 registerThemed("separator", s2)
+
+        mkSec(sf, "⚙️  TIMING", 14)
+        local pc = Instance.new("Frame") pc.Parent = sf pc.BackgroundTransparency = 1 pc.Size = UDim2.new(1,-6,0,90) pc.LayoutOrder = 15
+        local db = Instance.new("Frame") db.Parent = pc db.BackgroundColor3 = CurrentTheme.card db.Size = UDim2.new(0.48,0,0,85) makeCorner(db, 8) makeStroke(db, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", db)
+        local dl = Instance.new("TextLabel") dl.Parent = db dl.BackgroundTransparency = 1 dl.Position = UDim2.new(0,10,0,8) dl.Size = UDim2.new(1,-20,0,14) dl.Font = Enum.Font.GothamBold dl.Text = "⏱  Délai (sec)" dl.TextColor3 = CurrentTheme.textDim dl.TextSize = 10 dl.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", dl, "TextColor3")
+        local di = Instance.new("TextBox") di.Parent = db di.BackgroundColor3 = CurrentTheme.input di.Position = UDim2.new(0.1,0,0,38) di.Size = UDim2.new(0.8,0,0,34) di.Font = Enum.Font.GothamBold di.Text = tostring(KeybindDelay) di.TextColor3 = CurrentTheme.accent di.TextSize = 15 di.ClearTextOnFocus = false makeCorner(di, 6) makeStroke(di, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("input", di) registerThemed("accent", di, "TextColor3")
+        di.FocusLost:Connect(function() local v = tonumber(di.Text) if v and v >= 0.01 and v <= 10 then KeybindDelay = v di.TextColor3 = Color3.fromRGB(80,220,120) task.wait(0.4) di.TextColor3 = CurrentTheme.accent else di.Text = tostring(KeybindDelay) di.TextColor3 = Color3.fromRGB(255,80,80) task.wait(0.4) di.TextColor3 = CurrentTheme.accent end end)
+        local hb = Instance.new("Frame") hb.Parent = pc hb.BackgroundColor3 = CurrentTheme.card hb.Position = UDim2.new(0.52,0,0,0) hb.Size = UDim2.new(0.48,0,0,85) makeCorner(hb, 8) makeStroke(hb, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", hb)
+        local hl = Instance.new("TextLabel") hl.Parent = hb hl.BackgroundTransparency = 1 hl.Position = UDim2.new(0,10,0,8) hl.Size = UDim2.new(1,-20,0,14) hl.Font = Enum.Font.GothamBold hl.Text = "✋  Maintien (sec)" hl.TextColor3 = CurrentTheme.textDim hl.TextSize = 10 hl.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", hl, "TextColor3")
+        local hi = Instance.new("TextBox") hi.Parent = hb hi.BackgroundColor3 = CurrentTheme.input hi.Position = UDim2.new(0.1,0,0,38) hi.Size = UDim2.new(0.8,0,0,34) hi.Font = Enum.Font.GothamBold hi.Text = tostring(KeybindHoldTime) hi.TextColor3 = CurrentTheme.accent hi.TextSize = 15 hi.ClearTextOnFocus = false makeCorner(hi, 6) makeStroke(hi, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("input", hi) registerThemed("accent", hi, "TextColor3")
+        hi.FocusLost:Connect(function() local v = tonumber(hi.Text) if v and v >= 0.01 and v <= 10 then KeybindHoldTime = v hi.TextColor3 = Color3.fromRGB(80,220,120) task.wait(0.4) hi.TextColor3 = CurrentTheme.accent else hi.Text = tostring(KeybindHoldTime) hi.TextColor3 = Color3.fromRGB(255,80,80) task.wait(0.4) hi.TextColor3 = CurrentTheme.accent end end)
     end
 
-    local function buildGUI4()
-        clearAllPages()
-        GUI4 = Instance.new("Frame")
-        GUI4.Name = "GUI4_Misc"
-        GUI4.Parent = ContentArea
-        GUI4.BackgroundTransparency = 1
-        GUI4.Size = UDim2.new(1, 0, 1, 0)
-        local MF = Instance.new("ScrollingFrame")
-        MF.Parent = GUI4
-        MF.BackgroundColor3 = CurrentTheme.content
-        MF.Size = UDim2.new(1, 0, 1, 0)
-        MF.BorderSizePixel = 0
-        MF.CanvasSize = UDim2.new(0, 0, 0, 0)
-        MF.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        MF.ScrollBarThickness = 4
-        MF.ScrollBarImageColor3 = CurrentTheme.stroke
-        makeCorner(MF, 8)
-        makeStroke(MF, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("content", MF)
-        local Layout = Instance.new("UIListLayout")
-        Layout.Parent = MF
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 8)
-        local PadUI = Instance.new("UIPadding")
-        PadUI.Parent = MF
-        PadUI.PaddingTop = UDim.new(0, 12)
-        PadUI.PaddingLeft = UDim.new(0, 12)
-        PadUI.PaddingRight = UDim.new(0, 12)
-        PadUI.PaddingBottom = UDim.new(0, 12)
-        local MT = Instance.new("TextLabel")
-        MT.Parent = MF
-        MT.BackgroundTransparency = 1
-        MT.Size = UDim2.new(1, -10, 0, 28)
-        MT.Font = Enum.Font.GothamBold
-        MT.Text = "🔧 Misc - Utilitaires"
-        MT.TextColor3 = CurrentTheme.text
-        MT.TextSize = 16
-        MT.TextXAlignment = Enum.TextXAlignment.Left
-        MT.LayoutOrder = 0
-        registerThemed("text", MT, "TextColor3")
-        local NB = Instance.new("TextButton")
-        NB.Parent = MF
-        NB.BackgroundColor3 = CurrentTheme.card
-        NB.Size = UDim2.new(1, -10, 0, 50)
-        NB.Font = Enum.Font.GothamBold
-        NB.TextSize = 14
-        NB.LayoutOrder = 1
-        makeCorner(NB, 6)
-        makeStroke(NB, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", NB)
-        NB.MouseEnter:Connect(function() tween(NB, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end)
-        NB.MouseLeave:Connect(function() tween(NB, {BackgroundColor3 = CurrentTheme.card}, 0.15) end)
-        local function updateNoclip()
-            if NoclipEnabled then NB.Text = "👻 Noclip : ON" NB.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else NB.Text = "👻 Noclip : OFF" NB.TextColor3 = Color3.fromRGB(255, 100, 100) end
-        end
-        updateNoclip()
-        NB.MouseButton1Click:Connect(function()
+    local function bG4()
+        clr()
+        G4 = Instance.new("Frame") G4.Parent = CA G4.BackgroundTransparency = 1 G4.Size = UDim2.new(1,0,1,0)
+        local sf = mkScroll(G4)
+        mkSec(sf, "🔧  MISC · UTILITAIRES", 0)
+        local nb = Instance.new("TextButton") nb.Parent = sf nb.BackgroundColor3 = CurrentTheme.card nb.Size = UDim2.new(1,-6,0,48) nb.Font = Enum.Font.GothamBold nb.TextSize = 13 nb.LayoutOrder = 1 makeCorner(nb, 10) makeStroke(nb, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", nb)
+        nb.MouseEnter:Connect(function() tween(nb, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+        nb.MouseLeave:Connect(function() tween(nb, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+        local function un() if NoclipEnabled then nb.Text = "  👻  Noclip · ON" nb.TextColor3 = Color3.fromRGB(80,220,120) else nb.Text = "  👻  Noclip · OFF" nb.TextColor3 = Color3.fromRGB(255,80,80) end end un()
+        nb.MouseButton1Click:Connect(function()
             NoclipEnabled = not NoclipEnabled
-            if NoclipEnabled then
-                NoclipConnection = RunService.Stepped:Connect(function()
-                    if NoclipEnabled then
-                        local char = getMyCharacter()
-                        if char then for _, part in ipairs(char:GetDescendants()) do
-                            if part:IsA("BasePart") then part.CanCollide = false end
-                        end end
-                    end
-                end)
-            else
-                if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end
-                local char = getMyCharacter()
-                if char then for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then part.CanCollide = true end
-                end end
-            end
-            updateNoclip()
+            if NoclipEnabled then NoclipConnection = RunService.Stepped:Connect(function() if NoclipEnabled then local c = getMyCharacter() if c then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end end)
+            else if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end local c = getMyCharacter() if c then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then p.CanCollide = true end end end end un()
         end)
-        local ND = Instance.new("TextLabel")
-        ND.Parent = MF
-        ND.BackgroundTransparency = 1
-        ND.Size = UDim2.new(1, -10, 0, 18)
-        ND.Font = Enum.Font.Gotham
-        ND.Text = "   Traversez les murs et le sol"
-        ND.TextColor3 = Color3.fromRGB(90, 90, 90)
-        ND.TextSize = 10
-        ND.TextXAlignment = Enum.TextXAlignment.Left
-        ND.LayoutOrder = 2
-        local Sep1 = Instance.new("Frame")
-        Sep1.Parent = MF
-        Sep1.BackgroundColor3 = CurrentTheme.separator
-        Sep1.Size = UDim2.new(0.9, 0, 0, 1)
-        Sep1.BorderSizePixel = 0
-        Sep1.LayoutOrder = 3
-        registerThemed("separator", Sep1)
-        local SoruB = Instance.new("TextButton")
-        SoruB.Parent = MF
-        SoruB.BackgroundColor3 = CurrentTheme.card
-        SoruB.Size = UDim2.new(1, -10, 0, 50)
-        SoruB.Font = Enum.Font.GothamBold
-        SoruB.TextSize = 14
-        SoruB.LayoutOrder = 4
-        makeCorner(SoruB, 6)
-        makeStroke(SoruB, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", SoruB)
-        SoruB.MouseEnter:Connect(function() tween(SoruB, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end)
-        SoruB.MouseLeave:Connect(function() tween(SoruB, {BackgroundColor3 = CurrentTheme.card}, 0.15) end)
-        local function updateSoru()
-            if InfiniteSoruActive then SoruB.Text = "⚡ Infinite Soru / Dash : ON" SoruB.TextColor3 = Color3.fromRGB(100, 255, 100)
-            else SoruB.Text = "⚡ Infinite Soru / Dash : OFF" SoruB.TextColor3 = Color3.fromRGB(255, 100, 100) end
-        end
-        updateSoru()
-        SoruB.MouseButton1Click:Connect(function()
+        local s1 = Instance.new("Frame") s1.Parent = sf s1.BackgroundColor3 = CurrentTheme.separator s1.Size = UDim2.new(0.92,0,0,1) s1.BorderSizePixel = 0 s1.LayoutOrder = 2 registerThemed("separator", s1)
+        local srb = Instance.new("TextButton") srb.Parent = sf srb.BackgroundColor3 = CurrentTheme.card srb.Size = UDim2.new(1,-6,0,48) srb.Font = Enum.Font.GothamBold srb.TextSize = 13 srb.LayoutOrder = 3 makeCorner(srb, 10) makeStroke(srb, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", srb)
+        srb.MouseEnter:Connect(function() tween(srb, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+        srb.MouseLeave:Connect(function() tween(srb, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+        local function us() if InfiniteSoruActive then srb.Text = "  ⚡  Infinite Soru · ON" srb.TextColor3 = Color3.fromRGB(80,220,120) else srb.Text = "  ⚡  Infinite Soru · OFF" srb.TextColor3 = Color3.fromRGB(255,80,80) end end us()
+        srb.MouseButton1Click:Connect(function()
             InfiniteSoruActive = not InfiniteSoruActive
-            if InfiniteSoruActive then
-                InfiniteSoruConnection = RunService.Heartbeat:Connect(function()
-                    if InfiniteSoruActive then
-                        local pf = workspace:FindFirstChild("Players")
-                        if pf then local mf = pf:FindFirstChild(LocalPlayer.Name)
-                            if mf then pcall(function() mf:SetAttribute("SoruCD", 0) end) pcall(function() mf:SetAttribute("DashCD", 0) end) end end
-                        local cf = workspace:FindFirstChild("Characters")
-                        if cf then local cpf = cf:FindFirstChild("Players")
-                            if cpf then local mc = cpf:FindFirstChild(LocalPlayer.Name)
-                                if mc then pcall(function() mc:SetAttribute("SoruCD", 0) end) pcall(function() mc:SetAttribute("DashCD", 0) end) end end end
-                        if LocalPlayer.Character then pcall(function() LocalPlayer.Character:SetAttribute("SoruCD", 0) end) pcall(function() LocalPlayer.Character:SetAttribute("DashCD", 0) end) end
-                    end
-                end)
-            else
-                if InfiniteSoruConnection then InfiniteSoruConnection:Disconnect() InfiniteSoruConnection = nil end
-            end
-            updateSoru()
-        end)
-        local SD = Instance.new("TextLabel")
-        SD.Parent = MF
-        SD.BackgroundTransparency = 1
-        SD.Size = UDim2.new(1, -10, 0, 35)
-        SD.Font = Enum.Font.Gotham
-        SD.Text = "   Met en continu SoruCD et DashCD à 0\n   dans workspace.Players.[VotreNom]"
-        SD.TextColor3 = Color3.fromRGB(90, 90, 90)
-        SD.TextSize = 10
-        SD.TextXAlignment = Enum.TextXAlignment.Left
-        SD.TextYAlignment = Enum.TextYAlignment.Top
-        SD.LayoutOrder = 5
-        local Sep2 = Instance.new("Frame")
-        Sep2.Parent = MF
-        Sep2.BackgroundColor3 = CurrentTheme.separator
-        Sep2.Size = UDim2.new(0.9, 0, 0, 1)
-        Sep2.BorderSizePixel = 0
-        Sep2.LayoutOrder = 6
-        registerThemed("separator", Sep2)
-        local SFr = Instance.new("Frame")
-        SFr.Parent = MF
-        SFr.BackgroundColor3 = CurrentTheme.cardInner
-        SFr.Size = UDim2.new(1, -10, 0, 80)
-        SFr.LayoutOrder = 7
-        makeCorner(SFr, 6)
-        makeStroke(SFr, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("cardInner", SFr)
-        local SFT = Instance.new("TextLabel")
-        SFT.Parent = SFr
-        SFT.BackgroundTransparency = 1
-        SFT.Position = UDim2.new(0, 10, 0, 5)
-        SFT.Size = UDim2.new(1, -20, 0, 18)
-        SFT.Font = Enum.Font.GothamBold
-        SFT.Text = "📊 Status en temps réel"
-        SFT.TextColor3 = CurrentTheme.textDim
-        SFT.TextSize = 11
-        SFT.TextXAlignment = Enum.TextXAlignment.Left
-        registerThemed("textDim", SFT, "TextColor3")
-        local NS = Instance.new("TextLabel")
-        NS.Parent = SFr
-        NS.BackgroundTransparency = 1
-        NS.Position = UDim2.new(0, 10, 0, 28)
-        NS.Size = UDim2.new(1, -20, 0, 18)
-        NS.Font = Enum.Font.Gotham
-        NS.TextSize = 10
-        NS.TextXAlignment = Enum.TextXAlignment.Left
-        local SS = Instance.new("TextLabel")
-        SS.Parent = SFr
-        SS.BackgroundTransparency = 1
-        SS.Position = UDim2.new(0, 10, 0, 48)
-        SS.Size = UDim2.new(1, -20, 0, 18)
-        SS.Font = Enum.Font.Gotham
-        SS.TextSize = 10
-        SS.TextXAlignment = Enum.TextXAlignment.Left
-        task.spawn(function()
-            while GUI4 and GUI4.Parent do
-                NS.Text = NoclipEnabled and "👻 Noclip : 🟢 Actif" or "👻 Noclip : 🔴 Inactif"
-                NS.TextColor3 = NoclipEnabled and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(120, 120, 120)
-                SS.Text = InfiniteSoruActive and "⚡ Soru : 🟢 Actif" or "⚡ Soru : 🔴 Inactif"
-                SS.TextColor3 = InfiniteSoruActive and Color3.fromRGB(100, 200, 100) or Color3.fromRGB(120, 120, 120)
-                task.wait(0.3)
-            end
+            if InfiniteSoruActive then InfiniteSoruConnection = RunService.Heartbeat:Connect(function() if InfiniteSoruActive then
+                local pf = workspace:FindFirstChild("Players") if pf then local mf = pf:FindFirstChild(LocalPlayer.Name) if mf then pcall(function() mf:SetAttribute("SoruCD",0) end) pcall(function() mf:SetAttribute("DashCD",0) end) end end
+                local cf = workspace:FindFirstChild("Characters") if cf then local cpf = cf:FindFirstChild("Players") if cpf then local mc = cpf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("SoruCD",0) end) pcall(function() mc:SetAttribute("DashCD",0) end) end end end
+                if LocalPlayer.Character then pcall(function() LocalPlayer.Character:SetAttribute("SoruCD",0) end) pcall(function() LocalPlayer.Character:SetAttribute("DashCD",0) end) end
+            end end)
+            else if InfiniteSoruConnection then InfiniteSoruConnection:Disconnect() InfiniteSoruConnection = nil end end us()
         end)
     end
 
-    local function buildGUI5()
-        clearAllPages()
-        SettingsOpen = true
-        GUI5 = Instance.new("Frame")
-        GUI5.Name = "GUI5_Settings"
-        GUI5.Parent = ContentArea
-        GUI5.BackgroundTransparency = 1
-        GUI5.Size = UDim2.new(1, 0, 1, 0)
-        local SFrame = Instance.new("ScrollingFrame")
-        SFrame.Parent = GUI5
-        SFrame.BackgroundColor3 = CurrentTheme.content
-        SFrame.Size = UDim2.new(1, 0, 1, 0)
-        SFrame.BorderSizePixel = 0
-        SFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-        SFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-        SFrame.ScrollBarThickness = 4
-        SFrame.ScrollBarImageColor3 = CurrentTheme.stroke
-        makeCorner(SFrame, 8)
-        makeStroke(SFrame, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("content", SFrame)
-        local Layout = Instance.new("UIListLayout")
-        Layout.Parent = SFrame
-        Layout.SortOrder = Enum.SortOrder.LayoutOrder
-        Layout.Padding = UDim.new(0, 8)
-        local PadUI = Instance.new("UIPadding")
-        PadUI.Parent = SFrame
-        PadUI.PaddingTop = UDim.new(0, 12)
-        PadUI.PaddingLeft = UDim.new(0, 12)
-        PadUI.PaddingRight = UDim.new(0, 12)
-        PadUI.PaddingBottom = UDim.new(0, 12)
-        local SettTitle = Instance.new("TextLabel")
-        SettTitle.Parent = SFrame
-        SettTitle.BackgroundTransparency = 1
-        SettTitle.Size = UDim2.new(1, -10, 0, 28)
-        SettTitle.Font = Enum.Font.GothamBold
-        SettTitle.Text = "⚙️ Settings"
-        SettTitle.TextColor3 = CurrentTheme.text
-        SettTitle.TextSize = 16
-        SettTitle.TextXAlignment = Enum.TextXAlignment.Left
-        SettTitle.LayoutOrder = 0
-        registerThemed("text", SettTitle, "TextColor3")
-        local SaveInfo = Instance.new("TextLabel")
-        SaveInfo.Parent = SFrame
-        SaveInfo.BackgroundTransparency = 1
-        SaveInfo.Size = UDim2.new(1, -10, 0, 16)
-        SaveInfo.Font = Enum.Font.Gotham
-        SaveInfo.Text = "💾 Sauvegardé dans : " .. SETTINGS_FILE
-        SaveInfo.TextColor3 = Color3.fromRGB(80, 130, 80)
-        SaveInfo.TextSize = 9
-        SaveInfo.TextXAlignment = Enum.TextXAlignment.Left
-        SaveInfo.LayoutOrder = 1
-        local ThemeLabel = Instance.new("TextLabel")
-        ThemeLabel.Parent = SFrame
-        ThemeLabel.BackgroundTransparency = 1
-        ThemeLabel.Size = UDim2.new(1, -10, 0, 22)
-        ThemeLabel.Font = Enum.Font.GothamBold
-        ThemeLabel.Text = "🎨 Thèmes"
-        ThemeLabel.TextColor3 = CurrentTheme.textDim
-        ThemeLabel.TextSize = 13
-        ThemeLabel.TextXAlignment = Enum.TextXAlignment.Left
-        ThemeLabel.LayoutOrder = 2
-        registerThemed("textDim", ThemeLabel, "TextColor3")
-        local themeOrder = 3
-        local themeButtons = {}
-        local themeList = {
-            {name = "Noir & Gris", icon = "⚫", preview1 = Color3.fromRGB(15, 15, 15), preview2 = Color3.fromRGB(80, 80, 80)},
-            {name = "Violet Néon", icon = "🟣", preview1 = Color3.fromRGB(12, 8, 20), preview2 = Color3.fromRGB(130, 60, 220)},
-            {name = "Vert & Noir", icon = "🟢", preview1 = Color3.fromRGB(8, 15, 10), preview2 = Color3.fromRGB(50, 180, 80)},
-            {name = "Liquid Glass", icon = "💎", preview1 = Color3.fromRGB(30, 35, 45), preview2 = Color3.fromRGB(120, 140, 180)},
-        }
-        local function updateAllThemeButtons()
-            for tn, data in pairs(themeButtons) do
-                if tn == CurrentThemeName then
-                    data.activeLabel.Text = "✅ Actif"
-                    data.activeLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-                    data.applyBtn.Text = "✅"
-                    data.applyBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 50)
-                else
-                    data.activeLabel.Text = "Cliquer pour appliquer"
-                    data.activeLabel.TextColor3 = Color3.fromRGB(90, 90, 90)
-                    data.applyBtn.Text = "Appliquer"
-                    data.applyBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-                end
-            end
+    local function bG5()
+        clr() SettingsOpen = true
+        G5 = Instance.new("Frame") G5.Parent = CA G5.BackgroundTransparency = 1 G5.Size = UDim2.new(1,0,1,0)
+        local sf = mkScroll(G5)
+        mkSec(sf, "⚙️  SETTINGS", 0)
+        local si = Instance.new("TextLabel") si.Parent = sf si.BackgroundTransparency = 1 si.Size = UDim2.new(1,-6,0,14) si.Font = Enum.Font.Gotham si.Text = "💾  "..SETTINGS_FILE si.TextColor3 = Color3.fromRGB(70,130,70) si.TextSize = 9 si.TextXAlignment = Enum.TextXAlignment.Left si.LayoutOrder = 1
+        mkSec(sf, "🎨  THÈMES", 2)
+        local to = 3 local tbs = {}
+        local tl = {{name="Noir & Gris",icon="⚫",p1=Color3.fromRGB(18,18,22),p2=Color3.fromRGB(120,160,220)},{name="Violet Néon",icon="🟣",p1=Color3.fromRGB(8,4,18),p2=Color3.fromRGB(200,60,255)},{name="Vert & Noir",icon="🟢",p1=Color3.fromRGB(4,12,6),p2=Color3.fromRGB(50,255,100)},{name="Liquid Glass",icon="💎",p1=Color3.fromRGB(35,40,55),p2=Color3.fromRGB(140,190,255)}}
+        local function uatb() for tn, d in pairs(tbs) do if tn == CurrentThemeName then d.al.Text = "✅ Actif" d.al.TextColor3 = Color3.fromRGB(80,220,120) d.ab.Text = "✅" d.ab.BackgroundColor3 = Color3.fromRGB(30,80,45) else d.al.Text = "Appliquer" d.al.TextColor3 = Color3.fromRGB(90,90,100) d.ab.Text = "→" d.ab.BackgroundColor3 = Color3.fromRGB(50,50,62) end end end
+        for _, ti in ipairs(tl) do
+            local tb = Instance.new("TextButton") tb.Parent = sf tb.BackgroundColor3 = CurrentTheme.card tb.Size = UDim2.new(1,-6,0,52) tb.Text = "" tb.LayoutOrder = to tb.AutoButtonColor = false makeCorner(tb, 10) registerThemed("card", tb)
+            local pv1 = Instance.new("Frame") pv1.Parent = tb pv1.BackgroundColor3 = ti.p1 pv1.Position = UDim2.new(0,12,0.5,-16) pv1.Size = UDim2.new(0,32,0,32) makeCorner(pv1, 8) makeStroke(pv1, ti.p2, 2)
+            local pv2 = Instance.new("Frame") pv2.Parent = tb pv2.BackgroundColor3 = ti.p2 pv2.Position = UDim2.new(0,52,0.5,-10) pv2.Size = UDim2.new(0,20,0,20) makeCorner(pv2, 6)
+            local tn2 = Instance.new("TextLabel") tn2.Parent = tb tn2.BackgroundTransparency = 1 tn2.Position = UDim2.new(0,82,0,6) tn2.Size = UDim2.new(1,-140,0,18) tn2.Font = Enum.Font.GothamBold tn2.Text = ti.icon.."  "..ti.name tn2.TextColor3 = CurrentTheme.text tn2.TextSize = 13 tn2.TextXAlignment = Enum.TextXAlignment.Left registerThemed("text", tn2, "TextColor3")
+            local al = Instance.new("TextLabel") al.Parent = tb al.BackgroundTransparency = 1 al.Position = UDim2.new(0,82,0,26) al.Size = UDim2.new(1,-140,0,16) al.Font = Enum.Font.Gotham al.Text = (CurrentThemeName == ti.name) and "✅ Actif" or "Appliquer" al.TextColor3 = (CurrentThemeName == ti.name) and Color3.fromRGB(80,220,120) or Color3.fromRGB(90,90,100) al.TextSize = 10 al.TextXAlignment = Enum.TextXAlignment.Left
+            local ab = Instance.new("TextButton") ab.Parent = tb ab.BackgroundColor3 = (CurrentThemeName == ti.name) and Color3.fromRGB(30,80,45) or Color3.fromRGB(50,50,62) ab.Position = UDim2.new(1,-52,0.5,-13) ab.Size = UDim2.new(0,40,0,26) ab.Font = Enum.Font.GothamBold ab.Text = (CurrentThemeName == ti.name) and "✅" or "→" ab.TextColor3 = Color3.fromRGB(200,200,210) ab.TextSize = 12 makeCorner(ab, 7)
+            tbs[ti.name] = {al=al, ab=ab}
+            local thn = ti.name
+            local function at() applyTheme(thn, 0.5) uatb() end
+            tb.MouseButton1Click:Connect(at) ab.MouseButton1Click:Connect(at)
+            tb.MouseEnter:Connect(function() tween(tb, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end)
+            tb.MouseLeave:Connect(function() tween(tb, {BackgroundColor3=CurrentTheme.card}, 0.2) end)
+            to = to + 1
         end
-        for _, themeInfo in ipairs(themeList) do
-            local tBtn = Instance.new("TextButton")
-            tBtn.Parent = SFrame
-            tBtn.BackgroundColor3 = CurrentTheme.card
-            tBtn.Size = UDim2.new(1, -10, 0, 50)
-            tBtn.Font = Enum.Font.GothamBold
-            tBtn.Text = ""
-            tBtn.LayoutOrder = themeOrder
-            tBtn.AutoButtonColor = false
-            makeCorner(tBtn, 8)
-            registerThemed("card", tBtn)
-            local prev1 = Instance.new("Frame")
-            prev1.Parent = tBtn
-            prev1.BackgroundColor3 = themeInfo.preview1
-            prev1.Position = UDim2.new(0, 10, 0.5, -15)
-            prev1.Size = UDim2.new(0, 30, 0, 30)
-            makeCorner(prev1, 6)
-            makeStroke(prev1, themeInfo.preview2, 2)
-            local prev2 = Instance.new("Frame")
-            prev2.Parent = tBtn
-            prev2.BackgroundColor3 = themeInfo.preview2
-            prev2.Position = UDim2.new(0, 48, 0.5, -10)
-            prev2.Size = UDim2.new(0, 20, 0, 20)
-            makeCorner(prev2, 4)
-            local tName = Instance.new("TextLabel")
-            tName.Parent = tBtn
-            tName.BackgroundTransparency = 1
-            tName.Position = UDim2.new(0, 78, 0, 5)
-            tName.Size = UDim2.new(1, -130, 0, 20)
-            tName.Font = Enum.Font.GothamBold
-            tName.Text = themeInfo.icon .. "  " .. themeInfo.name
-            tName.TextColor3 = CurrentTheme.text
-            tName.TextSize = 13
-            tName.TextXAlignment = Enum.TextXAlignment.Left
-            registerThemed("text", tName, "TextColor3")
-            local activeLabel = Instance.new("TextLabel")
-            activeLabel.Parent = tBtn
-            activeLabel.BackgroundTransparency = 1
-            activeLabel.Position = UDim2.new(0, 78, 0, 25)
-            activeLabel.Size = UDim2.new(1, -130, 0, 18)
-            activeLabel.Font = Enum.Font.Gotham
-            activeLabel.Text = (CurrentThemeName == themeInfo.name) and "✅ Actif" or "Cliquer pour appliquer"
-            activeLabel.TextColor3 = (CurrentThemeName == themeInfo.name) and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(90, 90, 90)
-            activeLabel.TextSize = 10
-            activeLabel.TextXAlignment = Enum.TextXAlignment.Left
-            local applyBtnT = Instance.new("TextButton")
-            applyBtnT.Parent = tBtn
-            applyBtnT.BackgroundColor3 = (CurrentThemeName == themeInfo.name) and Color3.fromRGB(40, 80, 50) or Color3.fromRGB(50, 50, 60)
-            applyBtnT.Position = UDim2.new(1, -65, 0.5, -12)
-            applyBtnT.Size = UDim2.new(0, 55, 0, 24)
-            applyBtnT.Font = Enum.Font.GothamSemibold
-            applyBtnT.Text = (CurrentThemeName == themeInfo.name) and "✅" or "Appliquer"
-            applyBtnT.TextColor3 = Color3.fromRGB(200, 200, 200)
-            applyBtnT.TextSize = 10
-            makeCorner(applyBtnT, 5)
-            themeButtons[themeInfo.name] = {btn = tBtn, activeLabel = activeLabel, applyBtn = applyBtnT}
-            local thisThemeName = themeInfo.name
-            local function applyThisTh()
-                applyTheme(thisThemeName, 0.5)
-                updateAllThemeButtons()
-            end
-            tBtn.MouseButton1Click:Connect(applyThisTh)
-            applyBtnT.MouseButton1Click:Connect(applyThisTh)
-            tBtn.MouseEnter:Connect(function() tween(tBtn, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end)
-            tBtn.MouseLeave:Connect(function() tween(tBtn, {BackgroundColor3 = CurrentTheme.card}, 0.15) end)
-            themeOrder = themeOrder + 1
-        end
-        local Sep = Instance.new("Frame")
-        Sep.Parent = SFrame
-        Sep.BackgroundColor3 = CurrentTheme.separator
-        Sep.Size = UDim2.new(0.9, 0, 0, 1)
-        Sep.BorderSizePixel = 0
-        Sep.LayoutOrder = themeOrder
-        registerThemed("separator", Sep)
-        themeOrder = themeOrder + 1
-        local TransLabel = Instance.new("TextLabel")
-        TransLabel.Parent = SFrame
-        TransLabel.BackgroundTransparency = 1
-        TransLabel.Size = UDim2.new(1, -10, 0, 22)
-        TransLabel.Font = Enum.Font.GothamBold
-        TransLabel.Text = "🔍 Transparence du menu"
-        TransLabel.TextColor3 = CurrentTheme.textDim
-        TransLabel.TextSize = 13
-        TransLabel.TextXAlignment = Enum.TextXAlignment.Left
-        TransLabel.LayoutOrder = themeOrder
-        registerThemed("textDim", TransLabel, "TextColor3")
-        themeOrder = themeOrder + 1
-        local SliderContainer = Instance.new("Frame")
-        SliderContainer.Parent = SFrame
-        SliderContainer.BackgroundColor3 = CurrentTheme.card
-        SliderContainer.Size = UDim2.new(1, -10, 0, 80)
-        SliderContainer.LayoutOrder = themeOrder
-        makeCorner(SliderContainer, 8)
-        makeStroke(SliderContainer, CurrentTheme.strokeLight, 1, "strokeLight")
-        registerThemed("card", SliderContainer)
-        local OpaqueLabel = Instance.new("TextLabel")
-        OpaqueLabel.Parent = SliderContainer
-        OpaqueLabel.BackgroundTransparency = 1
-        OpaqueLabel.Position = UDim2.new(0, 15, 0, 8)
-        OpaqueLabel.Size = UDim2.new(0, 60, 0, 16)
-        OpaqueLabel.Font = Enum.Font.GothamSemibold
-        OpaqueLabel.Text = "Opaque"
-        OpaqueLabel.TextColor3 = CurrentTheme.textDim
-        OpaqueLabel.TextSize = 10
-        OpaqueLabel.TextXAlignment = Enum.TextXAlignment.Left
-        registerThemed("textDim", OpaqueLabel, "TextColor3")
-        local TransparentLabel = Instance.new("TextLabel")
-        TransparentLabel.Parent = SliderContainer
-        TransparentLabel.BackgroundTransparency = 1
-        TransparentLabel.Position = UDim2.new(1, -75, 0, 8)
-        TransparentLabel.Size = UDim2.new(0, 60, 0, 16)
-        TransparentLabel.Font = Enum.Font.GothamSemibold
-        TransparentLabel.Text = "Transparent"
-        TransparentLabel.TextColor3 = CurrentTheme.textDim
-        TransparentLabel.TextSize = 10
-        TransparentLabel.TextXAlignment = Enum.TextXAlignment.Right
-        registerThemed("textDim", TransparentLabel, "TextColor3")
-        local TransValue = Instance.new("TextLabel")
-        TransValue.Parent = SliderContainer
-        TransValue.BackgroundTransparency = 1
-        TransValue.Position = UDim2.new(0, 0, 0, 55)
-        TransValue.Size = UDim2.new(1, 0, 0, 18)
-        TransValue.Font = Enum.Font.GothamBold
-        TransValue.Text = tostring(math.floor(CurrentTransparency * 100)) .. "%"
-        TransValue.TextColor3 = CurrentTheme.accent
-        TransValue.TextSize = 12
-        registerThemed("accent", TransValue, "TextColor3")
-        local SliderTrack = Instance.new("Frame")
-        SliderTrack.Parent = SliderContainer
-        SliderTrack.BackgroundColor3 = CurrentTheme.cardInner
-        SliderTrack.Position = UDim2.new(0, 15, 0, 30)
-        SliderTrack.Size = UDim2.new(1, -30, 0, 16)
-        makeCorner(SliderTrack, 8)
-        registerThemed("cardInner", SliderTrack)
-        local SliderFill = Instance.new("Frame")
-        SliderFill.Parent = SliderTrack
-        SliderFill.BackgroundColor3 = CurrentTheme.accent
-        SliderFill.Size = UDim2.new(CurrentTransparency, 0, 1, 0)
-        makeCorner(SliderFill, 8)
-        registerThemed("accent", SliderFill)
-        local SliderKnob = Instance.new("Frame")
-        SliderKnob.Parent = SliderTrack
-        SliderKnob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-        SliderKnob.Position = UDim2.new(CurrentTransparency, -10, 0.5, -10)
-        SliderKnob.Size = UDim2.new(0, 20, 0, 20)
-        SliderKnob.ZIndex = 5
-        makeCorner(SliderKnob, 10)
-        makeStroke(SliderKnob, CurrentTheme.stroke, 2, "stroke")
-        local KnobCenter = Instance.new("Frame")
-        KnobCenter.Parent = SliderKnob
-        KnobCenter.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-        KnobCenter.Position = UDim2.new(0.5, -4, 0.5, -4)
-        KnobCenter.Size = UDim2.new(0, 8, 0, 8)
-        KnobCenter.ZIndex = 6
-        makeCorner(KnobCenter, 4)
-        local draggingSlider = false
-        local function updateSlider(inputPos)
-            local trackAbsPos = SliderTrack.AbsolutePosition.X
-            local trackAbsSize = SliderTrack.AbsoluteSize.X
-            local relativeX = math.clamp((inputPos.X - trackAbsPos) / trackAbsSize, 0, 1)
-            CurrentTransparency = relativeX
-            SliderFill.Size = UDim2.new(relativeX, 0, 1, 0)
-            SliderKnob.Position = UDim2.new(relativeX, -10, 0.5, -10)
-            TransValue.Text = tostring(math.floor(relativeX * 100)) .. "%"
-            applyTransparency(relativeX)
-        end
-        SliderTrack.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                draggingSlider = true
-                MainContainer.Draggable = false
-                updateSlider(input.Position)
-            end
-        end)
-        SliderKnob.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                draggingSlider = true
-                MainContainer.Draggable = false
-            end
-        end)
-        UserInputService.InputChanged:Connect(function(input)
-            if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                updateSlider(input.Position)
-            end
-        end)
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                if draggingSlider then
-                    draggingSlider = false
-                    MainContainer.Draggable = true
-                end
-            end
-        end)
+        local sp = Instance.new("Frame") sp.Parent = sf sp.BackgroundColor3 = CurrentTheme.separator sp.Size = UDim2.new(0.92,0,0,1) sp.BorderSizePixel = 0 sp.LayoutOrder = to registerThemed("separator", sp) to = to + 1
+        mkSec(sf, "🔍  TRANSPARENCE", to) to = to + 1
+        local slc = Instance.new("Frame") slc.Parent = sf slc.BackgroundColor3 = CurrentTheme.card slc.Size = UDim2.new(1,-6,0,80) slc.LayoutOrder = to makeCorner(slc, 10) makeStroke(slc, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", slc)
+        local ol = Instance.new("TextLabel") ol.Parent = slc ol.BackgroundTransparency = 1 ol.Position = UDim2.new(0,14,0,8) ol.Size = UDim2.new(0,50,0,14) ol.Font = Enum.Font.GothamSemibold ol.Text = "Opaque" ol.TextColor3 = CurrentTheme.textDim ol.TextSize = 9 ol.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", ol, "TextColor3")
+        local trl = Instance.new("TextLabel") trl.Parent = slc trl.BackgroundTransparency = 1 trl.Position = UDim2.new(1,-70,0,8) trl.Size = UDim2.new(0,56,0,14) trl.Font = Enum.Font.GothamSemibold trl.Text = "Transparent" trl.TextColor3 = CurrentTheme.textDim trl.TextSize = 9 trl.TextXAlignment = Enum.TextXAlignment.Right registerThemed("textDim", trl, "TextColor3")
+        local tv = Instance.new("TextLabel") tv.Parent = slc tv.BackgroundTransparency = 1 tv.Position = UDim2.new(0,0,0,56) tv.Size = UDim2.new(1,0,0,18) tv.Font = Enum.Font.GothamBold tv.Text = math.floor(CurrentTransparency*100).."%" tv.TextColor3 = CurrentTheme.accent tv.TextSize = 12 registerThemed("accent", tv, "TextColor3")
+        local slt = Instance.new("Frame") slt.Parent = slc slt.BackgroundColor3 = CurrentTheme.cardInner slt.Position = UDim2.new(0,14,0,30) slt.Size = UDim2.new(1,-28,0,14) makeCorner(slt, 7) registerThemed("cardInner", slt)
+        local slf = Instance.new("Frame") slf.Parent = slt slf.BackgroundColor3 = CurrentTheme.accent slf.Size = UDim2.new(CurrentTransparency,0,1,0) makeCorner(slf, 7) registerThemed("accent", slf)
+        local slk = Instance.new("Frame") slk.Parent = slt slk.BackgroundColor3 = CurrentTheme.knob or Color3.fromRGB(220,220,230) slk.Position = UDim2.new(CurrentTransparency,-10,0.5,-10) slk.Size = UDim2.new(0,20,0,20) slk.ZIndex = 5 makeCorner(slk, 10) makeStroke(slk, CurrentTheme.stroke, 1.5, "stroke")
+        local slkc = Instance.new("Frame") slkc.Parent = slk slkc.BackgroundColor3 = CurrentTheme.knobCenter or CurrentTheme.accent slkc.Position = UDim2.new(0.5,-4,0.5,-4) slkc.Size = UDim2.new(0,8,0,8) slkc.ZIndex = 6 makeCorner(slkc, 4)
+        local dr = false
+        local function usl(ip) local tap = slt.AbsolutePosition.X local tas = slt.AbsoluteSize.X local rx = math.clamp((ip.X-tap)/tas, 0, 1) CurrentTransparency = rx slf.Size = UDim2.new(rx,0,1,0) slk.Position = UDim2.new(rx,-10,0.5,-10) tv.Text = math.floor(rx*100).."%" applyTransparency(rx) end
+        slt.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = true MC.Draggable = false usl(i.Position) end end)
+        slk.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dr = true MC.Draggable = false end end)
+        UserInputService.InputChanged:Connect(function(i) if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then usl(i.Position) end end)
+        UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then if dr then dr = false MC.Draggable = true end end end)
     end
 
-    local function updateSidebarHighlight_inner(activeName)
-        for name, btn in pairs(sidebarButtons) do
-            if name == activeName then
-                tween(btn, {BackgroundColor3 = CurrentTheme.sidebarActive}, 0.2)
-                btn.TextColor3 = CurrentTheme.accent
-            else
-                tween(btn, {BackgroundColor3 = CurrentTheme.sidebarBtn}, 0.2)
-                btn.TextColor3 = CurrentTheme.textDim
-            end
-        end
+    local function uSHi(an) for n, b in pairs(sB) do if n == an then tween(b, {BackgroundColor3=CurrentTheme.sidebarActive}, 0.2) b.TextColor3 = CurrentTheme.accent else tween(b, {BackgroundColor3=CurrentTheme.sidebarBtn}, 0.2) b.TextColor3 = CurrentTheme.textDim end end end
+    function uSH(n) uSHi(n) end
+
+    local function cSB(n, ic, o, cb)
+        local b = Instance.new("TextButton") b.Name = "S_"..n b.Parent = SDr b.BackgroundColor3 = CurrentTheme.sidebarBtn b.Position = UDim2.new(0,8,0,12+(o*46)) b.Size = UDim2.new(1,-16,0,40) b.Font = Enum.Font.GothamBold b.Text = ic.."  "..n b.TextColor3 = CurrentTheme.textDim b.TextSize = 11 b.AutoButtonColor = false makeCorner(b, 8) registerThemed("sidebarBtn", b) registerThemed("textDim", b, "TextColor3")
+        b.MouseEnter:Connect(function() if cP ~= n then tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.2) end end)
+        b.MouseLeave:Connect(function() if cP ~= n then tween(b, {BackgroundColor3=CurrentTheme.sidebarBtn}, 0.2) end end)
+        b.MouseButton1Click:Connect(function() cP = n SettingsOpen = false uSHi(n) cb() end)
+        sB[n] = b
     end
 
-    function updateSidebarHighlight(name)
-        updateSidebarHighlight_inner(name)
-    end
+    cSB("Home", "🏠", 0, bG1) cSB("Teleport", "🔀", 1, bG2) cSB("Auto", "⌨️", 2, bG3) cSB("Misc", "🔧", 3, bG4)
 
-    local function createSidebarButton(name, icon, order, callback)
-        local btn = Instance.new("TextButton")
-        btn.Name = "Side_" .. name
-        btn.Parent = Sidebar
-        btn.BackgroundColor3 = CurrentTheme.sidebarBtn
-        btn.Position = UDim2.new(0, 8, 0, 10 + (order * 44))
-        btn.Size = UDim2.new(1, -16, 0, 38)
-        btn.Font = Enum.Font.GothamBold
-        btn.Text = icon .. " " .. name
-        btn.TextColor3 = CurrentTheme.textDim
-        btn.TextSize = 11
-        btn.AutoButtonColor = false
-        makeCorner(btn, 6)
-        registerThemed("sidebarBtn", btn)
-        registerThemed("textDim", btn, "TextColor3")
-        btn.MouseEnter:Connect(function()
-            if currentPage ~= name then tween(btn, {BackgroundColor3 = CurrentTheme.hoverBtn}, 0.15) end
-        end)
-        btn.MouseLeave:Connect(function()
-            if currentPage ~= name then tween(btn, {BackgroundColor3 = CurrentTheme.sidebarBtn}, 0.15) end
-        end)
-        btn.MouseButton1Click:Connect(function()
-            currentPage = name
-            SettingsOpen = false
-            updateSidebarHighlight_inner(name)
-            callback()
-        end)
-        sidebarButtons[name] = btn
-    end
-
-    createSidebarButton("Home", "🏠", 0, buildGUI1)
-    createSidebarButton("Teleport", "🔀", 1, buildGUI2)
-    createSidebarButton("Auto", "⌨️", 2, buildGUI3)
-    createSidebarButton("Misc", "🔧", 3, buildGUI4)
-
-    SettingsBtn.MouseButton1Click:Connect(function()
-        if SettingsOpen then
-            SettingsOpen = false
-            if currentPage == "Home" then buildGUI1()
-            elseif currentPage == "Teleport" then buildGUI2()
-            elseif currentPage == "Auto" then buildGUI3()
-            elseif currentPage == "Misc" then buildGUI4()
-            else buildGUI1() end
-            updateSidebarHighlight_inner(currentPage)
-        else
-            SettingsOpen = true
-            for _, btn in pairs(sidebarButtons) do
-                tween(btn, {BackgroundColor3 = CurrentTheme.sidebarBtn}, 0.2)
-                btn.TextColor3 = CurrentTheme.textDim
-            end
-            buildGUI5()
-        end
+    SBt.MouseButton1Click:Connect(function()
+        if SettingsOpen then SettingsOpen = false
+            if cP == "Home" then bG1() elseif cP == "Teleport" then bG2() elseif cP == "Auto" then bG3() elseif cP == "Misc" then bG4() else bG1() end uSHi(cP)
+        else SettingsOpen = true for _, b in pairs(sB) do tween(b, {BackgroundColor3=CurrentTheme.sidebarBtn}, 0.2) b.TextColor3 = CurrentTheme.textDim end bG5() end
     end)
 
-    currentPage = "Home"
-    updateSidebarHighlight_inner("Home")
-    buildGUI1()
+    cP = "Home" uSHi("Home") bG1()
 end
