@@ -15,8 +15,8 @@ local NoclipConnection = nil
 local AutoKeybindActive = false
 local InfiniteSoruActive = false
 local InfiniteSoruConnection = nil
-local KeybindDelay = 1.5
-local KeybindHoldTime = 0.7
+local KeybindDelay = 0.7
+local KeybindHoldTime = 0.5
 local CurrentTransparency = 0
 local SettingsOpen = false
 local StayPositionActive = false
@@ -38,155 +38,75 @@ local CustomHoldTimes = {}
 local WebhookSentLevels = {}
 local LastWebhookTime = 0
 local ToggleKeyCode = Enum.KeyCode.RightControl
+local InfiniteJumpActive = false
+local InfiniteJumpConnection = nil
+local TPToPlayerKeyCode = Enum.KeyCode.T
+local ESPOptions = {showBounty=true,showFruit=true,showLevel=true,showDistance=true,showName=true}
 
 local Themes = {
-    ["Noir & Gris"] = {
-        bg = Color3.fromRGB(18, 18, 22), titleBar = Color3.fromRGB(24, 24, 30), sidebar = Color3.fromRGB(20, 20, 26),
-        content = Color3.fromRGB(28, 28, 34), card = Color3.fromRGB(34, 34, 42), cardInner = Color3.fromRGB(22, 22, 28),
-        stroke = Color3.fromRGB(60, 60, 72), strokeLight = Color3.fromRGB(48, 48, 58), text = Color3.fromRGB(225, 225, 230),
-        textDim = Color3.fromRGB(140, 140, 155), accent = Color3.fromRGB(120, 160, 220), sidebarActive = Color3.fromRGB(40, 42, 54),
-        sidebarBtn = Color3.fromRGB(26, 26, 32), hoverBtn = Color3.fromRGB(44, 44, 56), input = Color3.fromRGB(20, 20, 26),
-        separator = Color3.fromRGB(45, 45, 55), knob = Color3.fromRGB(180, 185, 195), knobCenter = Color3.fromRGB(120, 160, 220),
-    },
-    ["Violet Néon"] = {
-        bg = Color3.fromRGB(8, 4, 18), titleBar = Color3.fromRGB(14, 6, 28), sidebar = Color3.fromRGB(10, 4, 22),
-        content = Color3.fromRGB(16, 8, 32), card = Color3.fromRGB(22, 10, 44), cardInner = Color3.fromRGB(12, 5, 26),
-        stroke = Color3.fromRGB(160, 50, 255), strokeLight = Color3.fromRGB(110, 30, 200), text = Color3.fromRGB(240, 220, 255),
-        textDim = Color3.fromRGB(170, 130, 220), accent = Color3.fromRGB(200, 60, 255), sidebarActive = Color3.fromRGB(45, 15, 90),
-        sidebarBtn = Color3.fromRGB(14, 6, 30), hoverBtn = Color3.fromRGB(50, 18, 100), input = Color3.fromRGB(10, 4, 22),
-        separator = Color3.fromRGB(100, 30, 180), knob = Color3.fromRGB(200, 60, 255), knobCenter = Color3.fromRGB(255, 100, 255),
-    },
-    ["Vert & Noir"] = {
-        bg = Color3.fromRGB(4, 12, 6), titleBar = Color3.fromRGB(6, 18, 10), sidebar = Color3.fromRGB(4, 14, 8),
-        content = Color3.fromRGB(8, 22, 12), card = Color3.fromRGB(10, 28, 16), cardInner = Color3.fromRGB(6, 16, 10),
-        stroke = Color3.fromRGB(30, 200, 70), strokeLight = Color3.fromRGB(20, 140, 50), text = Color3.fromRGB(200, 255, 210),
-        textDim = Color3.fromRGB(100, 200, 130), accent = Color3.fromRGB(50, 255, 100), sidebarActive = Color3.fromRGB(15, 50, 25),
-        sidebarBtn = Color3.fromRGB(6, 18, 10), hoverBtn = Color3.fromRGB(18, 55, 28), input = Color3.fromRGB(4, 14, 8),
-        separator = Color3.fromRGB(25, 120, 45), knob = Color3.fromRGB(50, 255, 100), knobCenter = Color3.fromRGB(100, 255, 150),
-    },
-    ["Liquid Glass"] = {
-        bg = Color3.fromRGB(35, 40, 55), titleBar = Color3.fromRGB(45, 52, 72), sidebar = Color3.fromRGB(38, 44, 62),
-        content = Color3.fromRGB(50, 58, 80), card = Color3.fromRGB(60, 68, 95), cardInner = Color3.fromRGB(45, 52, 75),
-        stroke = Color3.fromRGB(130, 155, 210), strokeLight = Color3.fromRGB(100, 120, 175), text = Color3.fromRGB(235, 240, 255),
-        textDim = Color3.fromRGB(170, 185, 220), accent = Color3.fromRGB(140, 190, 255), sidebarActive = Color3.fromRGB(65, 78, 110),
-        sidebarBtn = Color3.fromRGB(45, 52, 72), hoverBtn = Color3.fromRGB(72, 85, 120), input = Color3.fromRGB(40, 48, 68),
-        separator = Color3.fromRGB(90, 110, 155), knob = Color3.fromRGB(200, 220, 255), knobCenter = Color3.fromRGB(140, 190, 255),
-    },
+    ["Noir & Gris"] = {bg=Color3.fromRGB(18,18,22),titleBar=Color3.fromRGB(24,24,30),sidebar=Color3.fromRGB(20,20,26),content=Color3.fromRGB(28,28,34),card=Color3.fromRGB(34,34,42),cardInner=Color3.fromRGB(22,22,28),stroke=Color3.fromRGB(60,60,72),strokeLight=Color3.fromRGB(48,48,58),text=Color3.fromRGB(225,225,230),textDim=Color3.fromRGB(140,140,155),accent=Color3.fromRGB(120,160,220),sidebarActive=Color3.fromRGB(40,42,54),sidebarBtn=Color3.fromRGB(26,26,32),hoverBtn=Color3.fromRGB(44,44,56),input=Color3.fromRGB(20,20,26),separator=Color3.fromRGB(45,45,55),knob=Color3.fromRGB(180,185,195),knobCenter=Color3.fromRGB(120,160,220)},
+    ["Violet Néon"] = {bg=Color3.fromRGB(8,4,18),titleBar=Color3.fromRGB(14,6,28),sidebar=Color3.fromRGB(10,4,22),content=Color3.fromRGB(16,8,32),card=Color3.fromRGB(22,10,44),cardInner=Color3.fromRGB(12,5,26),stroke=Color3.fromRGB(160,50,255),strokeLight=Color3.fromRGB(110,30,200),text=Color3.fromRGB(240,220,255),textDim=Color3.fromRGB(170,130,220),accent=Color3.fromRGB(200,60,255),sidebarActive=Color3.fromRGB(45,15,90),sidebarBtn=Color3.fromRGB(14,6,30),hoverBtn=Color3.fromRGB(50,18,100),input=Color3.fromRGB(10,4,22),separator=Color3.fromRGB(100,30,180),knob=Color3.fromRGB(200,60,255),knobCenter=Color3.fromRGB(255,100,255)},
+    ["Vert & Noir"] = {bg=Color3.fromRGB(4,12,6),titleBar=Color3.fromRGB(6,18,10),sidebar=Color3.fromRGB(4,14,8),content=Color3.fromRGB(8,22,12),card=Color3.fromRGB(10,28,16),cardInner=Color3.fromRGB(6,16,10),stroke=Color3.fromRGB(30,200,70),strokeLight=Color3.fromRGB(20,140,50),text=Color3.fromRGB(200,255,210),textDim=Color3.fromRGB(100,200,130),accent=Color3.fromRGB(50,255,100),sidebarActive=Color3.fromRGB(15,50,25),sidebarBtn=Color3.fromRGB(6,18,10),hoverBtn=Color3.fromRGB(18,55,28),input=Color3.fromRGB(4,14,8),separator=Color3.fromRGB(25,120,45),knob=Color3.fromRGB(50,255,100),knobCenter=Color3.fromRGB(100,255,150)},
+    ["Liquid Glass"] = {bg=Color3.fromRGB(35,40,55),titleBar=Color3.fromRGB(45,52,72),sidebar=Color3.fromRGB(38,44,62),content=Color3.fromRGB(50,58,80),card=Color3.fromRGB(60,68,95),cardInner=Color3.fromRGB(45,52,75),stroke=Color3.fromRGB(130,155,210),strokeLight=Color3.fromRGB(100,120,175),text=Color3.fromRGB(235,240,255),textDim=Color3.fromRGB(170,185,220),accent=Color3.fromRGB(140,190,255),sidebarActive=Color3.fromRGB(65,78,110),sidebarBtn=Color3.fromRGB(45,52,72),hoverBtn=Color3.fromRGB(72,85,120),input=Color3.fromRGB(40,48,68),separator=Color3.fromRGB(90,110,155),knob=Color3.fromRGB(200,220,255),knobCenter=Color3.fromRGB(140,190,255)},
 }
 
 local CurrentThemeName = "Noir & Gris"
 local CurrentTheme = Themes[CurrentThemeName]
 local ThemedElements = {bg={},titleBar={},sidebar={},content={},card={},cardInner={},stroke={},strokeLight={},text={},textDim={},accent={},sidebarActive={},sidebarBtn={},input={},separator={}}
-local function registerThemed(c, e, p) table.insert(ThemedElements[c], {element=e, property=p or "BackgroundColor3"}) end
+local function registerThemed(c,e,p) table.insert(ThemedElements[c],{element=e,property=p or "BackgroundColor3"}) end
 
 local SETTINGS_FOLDER = "FruitHUB"
-local SETTINGS_FILE = SETTINGS_FOLDER .. "/settings.json"
+local SETTINGS_FILE = SETTINGS_FOLDER.."/settings.json"
 
-local KeyCodeNames = {
-    [Enum.KeyCode.RightControl] = "RightCtrl",
-    [Enum.KeyCode.LeftControl] = "LeftCtrl",
-    [Enum.KeyCode.RightShift] = "RightShift",
-    [Enum.KeyCode.LeftShift] = "LeftShift",
-    [Enum.KeyCode.RightAlt] = "RightAlt",
-    [Enum.KeyCode.LeftAlt] = "LeftAlt",
-    [Enum.KeyCode.F1] = "F1", [Enum.KeyCode.F2] = "F2", [Enum.KeyCode.F3] = "F3",
-    [Enum.KeyCode.F4] = "F4", [Enum.KeyCode.F5] = "F5", [Enum.KeyCode.F6] = "F6",
-    [Enum.KeyCode.F7] = "F7", [Enum.KeyCode.F8] = "F8", [Enum.KeyCode.F9] = "F9",
-    [Enum.KeyCode.F10] = "F10", [Enum.KeyCode.F11] = "F11", [Enum.KeyCode.F12] = "F12",
-    [Enum.KeyCode.Insert] = "Insert", [Enum.KeyCode.Delete] = "Delete",
-    [Enum.KeyCode.Home] = "Home", [Enum.KeyCode.End] = "End",
-    [Enum.KeyCode.PageUp] = "PageUp", [Enum.KeyCode.PageDown] = "PageDown",
-    [Enum.KeyCode.Tab] = "Tab", [Enum.KeyCode.CapsLock] = "CapsLock",
-    [Enum.KeyCode.BackSlash] = "\\", [Enum.KeyCode.Semicolon] = ";",
-}
-
-local function getKeyName(kc)
-    if KeyCodeNames[kc] then return KeyCodeNames[kc] end
-    return kc.Name
-end
-
-local function stringToToggleKeyCode(str)
-    for kc, name in pairs(KeyCodeNames) do
-        if name == str then return kc end
-    end
-    local s, r = pcall(function() return Enum.KeyCode[str] end)
-    if s and r then return r end
-    return Enum.KeyCode.RightControl
-end
+local KeyCodeNames = {[Enum.KeyCode.RightControl]="RightCtrl",[Enum.KeyCode.LeftControl]="LeftCtrl",[Enum.KeyCode.RightShift]="RightShift",[Enum.KeyCode.LeftShift]="LeftShift",[Enum.KeyCode.RightAlt]="RightAlt",[Enum.KeyCode.LeftAlt]="LeftAlt",[Enum.KeyCode.F1]="F1",[Enum.KeyCode.F2]="F2",[Enum.KeyCode.F3]="F3",[Enum.KeyCode.F4]="F4",[Enum.KeyCode.F5]="F5",[Enum.KeyCode.F6]="F6",[Enum.KeyCode.F7]="F7",[Enum.KeyCode.F8]="F8",[Enum.KeyCode.F9]="F9",[Enum.KeyCode.F10]="F10",[Enum.KeyCode.F11]="F11",[Enum.KeyCode.F12]="F12",[Enum.KeyCode.Insert]="Insert",[Enum.KeyCode.Delete]="Delete",[Enum.KeyCode.Home]="Home",[Enum.KeyCode.End]="End",[Enum.KeyCode.Tab]="Tab",[Enum.KeyCode.T]="T",[Enum.KeyCode.Y]="Y",[Enum.KeyCode.U]="U",[Enum.KeyCode.P]="P",[Enum.KeyCode.H]="H",[Enum.KeyCode.J]="J",[Enum.KeyCode.K]="K",[Enum.KeyCode.L]="L",[Enum.KeyCode.N]="N",[Enum.KeyCode.M]="M",[Enum.KeyCode.B]="B",[Enum.KeyCode.V]="V",[Enum.KeyCode.X]="X",[Enum.KeyCode.Z]="Z"}
+local function getKeyName(kc) if KeyCodeNames[kc] then return KeyCodeNames[kc] end return kc.Name end
+local function stringToToggleKeyCode(str) for kc,name in pairs(KeyCodeNames) do if name == str then return kc end end local s,r = pcall(function() return Enum.KeyCode[str] end) if s and r then return r end return Enum.KeyCode.RightControl end
 
 local function saveSettings()
     pcall(function()
         if not isfolder(SETTINGS_FOLDER) then makefolder(SETTINGS_FOLDER) end
-        writefile(SETTINGS_FILE, HttpService:JSONEncode({
-            theme = CurrentThemeName or "Noir & Gris",
-            transparency = CurrentTransparency or 0,
-            webhook = WebhookURL or "",
-            customHolds = CustomHoldTimes or {},
-            toggleKey = getKeyName(ToggleKeyCode),
-        }))
+        writefile(SETTINGS_FILE, HttpService:JSONEncode({theme=CurrentThemeName,transparency=CurrentTransparency,webhook=WebhookURL,customHolds=CustomHoldTimes,toggleKey=getKeyName(ToggleKeyCode),tpPlayerKey=getKeyName(TPToPlayerKeyCode),espOptions=ESPOptions}))
     end)
 end
 
 local function loadSettings()
-    local s, r = pcall(function() if isfile(SETTINGS_FILE) then return HttpService:JSONDecode(readfile(SETTINGS_FILE)) end return nil end)
+    local s,r = pcall(function() if isfile(SETTINGS_FILE) then return HttpService:JSONDecode(readfile(SETTINGS_FILE)) end return nil end)
     if s and r then return r end return nil
 end
 
 local ss = loadSettings()
 if ss then
     if ss.theme and Themes[ss.theme] then CurrentThemeName = ss.theme CurrentTheme = Themes[CurrentThemeName] end
-    if ss.transparency then CurrentTransparency = math.clamp(ss.transparency, 0, 1) end
+    if ss.transparency then CurrentTransparency = math.clamp(ss.transparency,0,1) end
     if ss.webhook then WebhookURL = ss.webhook end
     if ss.customHolds then CustomHoldTimes = ss.customHolds end
     if ss.toggleKey then ToggleKeyCode = stringToToggleKeyCode(ss.toggleKey) end
+    if ss.tpPlayerKey then TPToPlayerKeyCode = stringToToggleKeyCode(ss.tpPlayerKey) end
+    if ss.espOptions then
+        if ss.espOptions.showBounty ~= nil then ESPOptions.showBounty = ss.espOptions.showBounty end
+        if ss.espOptions.showFruit ~= nil then ESPOptions.showFruit = ss.espOptions.showFruit end
+        if ss.espOptions.showLevel ~= nil then ESPOptions.showLevel = ss.espOptions.showLevel end
+        if ss.espOptions.showDistance ~= nil then ESPOptions.showDistance = ss.espOptions.showDistance end
+        if ss.espOptions.showName ~= nil then ESPOptions.showName = ss.espOptions.showName end
+    end
 else saveSettings() end
 
-local function applyTheme(tn, d)
-    d = d or 0.4
-    if not Themes[tn] then return end
-    CurrentThemeName = tn CurrentTheme = Themes[tn]
-    for cat, els in pairs(ThemedElements) do local col = CurrentTheme[cat]
-        if col then for _, dt in ipairs(els) do if dt.element and dt.element.Parent then
-            TweenService:Create(dt.element, TweenInfo.new(d, Enum.EasingStyle.Quad), {[dt.property] = col}):Play()
-        end end end
-    end
-    task.delay(0.1, saveSettings)
-end
+local function applyTheme(tn,d) d=d or 0.4 if not Themes[tn] then return end CurrentThemeName=tn CurrentTheme=Themes[tn] for cat,els in pairs(ThemedElements) do local col=CurrentTheme[cat] if col then for _,dt in ipairs(els) do if dt.element and dt.element.Parent then TweenService:Create(dt.element,TweenInfo.new(d,Enum.EasingStyle.Quad),{[dt.property]=col}):Play() end end end end task.delay(0.1,saveSettings) end
+local function applyTransparency(v) CurrentTransparency=math.clamp(v,0,1) local lvl={bg=1,content=0.8,sidebar=0.7,titleBar=0.5,card=0.6} for cat,m in pairs(lvl) do for _,dt in ipairs(ThemedElements[cat]) do if dt.element and dt.element.Parent and dt.property=="BackgroundColor3" then TweenService:Create(dt.element,TweenInfo.new(0.2),{BackgroundTransparency=v*m}):Play() end end end task.delay(0.1,saveSettings) end
+local function detectCurrentSea() local n=workspace:FindFirstChild("NPCs") if n then if n:FindFirstChild("Charlie") then return 2 end if n:FindFirstChild("Scientist") then return 1 end end return 3 end
 
-local function applyTransparency(v)
-    CurrentTransparency = math.clamp(v, 0, 1)
-    local lvl = {bg=1, content=0.8, sidebar=0.7, titleBar=0.5, card=0.6}
-    for cat, m in pairs(lvl) do for _, dt in ipairs(ThemedElements[cat]) do
-        if dt.element and dt.element.Parent and dt.property == "BackgroundColor3" then
-            TweenService:Create(dt.element, TweenInfo.new(0.2), {BackgroundTransparency = v * m}):Play()
-        end
-    end end
-    task.delay(0.1, saveSettings)
-end
+local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name="HubMain" ScreenGui.Parent=game.CoreGui ScreenGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling ScreenGui.ResetOnSpawn=false
 
-local function detectCurrentSea()
-    local n = workspace:FindFirstChild("NPCs")
-    if n then if n:FindFirstChild("Charlie") then return 2 end if n:FindFirstChild("Scientist") then return 1 end end
-    return 3
-end
+local function makeCorner(p,r) local c=Instance.new("UICorner") c.CornerRadius=UDim.new(0,r or 8) c.Parent=p return c end
+local function makeStroke(p,col,th,cat) local s=Instance.new("UIStroke") s.Color=col or CurrentTheme.stroke s.Thickness=th or 1 s.Parent=p if cat then registerThemed(cat,s,"Color") end return s end
+local function tween(o,pr,d) TweenService:Create(o,TweenInfo.new(d or 0.2,Enum.EasingStyle.Quint),pr):Play() end
+local function hoverEffect(b,n,h) b.MouseEnter:Connect(function() tween(b,{BackgroundColor3=h},0.2) end) b.MouseLeave:Connect(function() tween(b,{BackgroundColor3=n},0.2) end) end
 
-local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name = "HubMain" ScreenGui.Parent = game.CoreGui ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling ScreenGui.ResetOnSpawn = false
-
-local function makeCorner(p, r) local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0, r or 8) c.Parent = p return c end
-local function makeStroke(p, col, th, cat) local s = Instance.new("UIStroke") s.Color = col or CurrentTheme.stroke s.Thickness = th or 1 s.Parent = p if cat then registerThemed(cat, s, "Color") end return s end
-local function tween(o, pr, d) TweenService:Create(o, TweenInfo.new(d or 0.2, Enum.EasingStyle.Quint), pr):Play() end
-local function hoverEffect(b, n, h) b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=h}, 0.2) end) b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=n}, 0.2) end) end
-
-local function getMyCharacter()
-    local c local cf = workspace:FindFirstChild("Characters")
-    if cf then local pf = cf:FindFirstChild("Players") if pf then c = pf:FindFirstChild(LocalPlayer.Name) end end
-    if not c then c = LocalPlayer.Character end return c
-end
-
-local function teleportTo(x, y, z) local mc = getMyCharacter() if mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame = CFrame.new(x, y, z) return true end return false end
+local function getMyCharacter() local c local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then c=pf:FindFirstChild(LocalPlayer.Name) end end if not c then c=LocalPlayer.Character end return c end
+local function teleportTo(x,y,z) local mc=getMyCharacter() if mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame=CFrame.new(x,y,z) return true end return false end
 
 local function destroyAll()
-    NoclipEnabled = false AutoKeybindActive = false InfiniteSoruActive = false StayPositionActive = false UltimateFarmActive = false AntiStunActive = false AntiLowHPActive = false ESPEnabled = false
+    NoclipEnabled=false AutoKeybindActive=false InfiniteSoruActive=false StayPositionActive=false UltimateFarmActive=false AntiStunActive=false AntiLowHPActive=false ESPEnabled=false InfiniteJumpActive=false
     if NoclipConnection then NoclipConnection:Disconnect() end
     if InfiniteSoruConnection then InfiniteSoruConnection:Disconnect() end
     if StayPositionConnection then StayPositionConnection:Disconnect() end
@@ -194,731 +114,645 @@ local function destroyAll()
     if AntiLowHPConnection then AntiLowHPConnection:Disconnect() end
     if LevelCheckConnection then LevelCheckConnection:Disconnect() end
     if ESPUpdateConnection then ESPUpdateConnection:Disconnect() end
+    if InfiniteJumpConnection then InfiniteJumpConnection:Disconnect() end
     if ESPFolder then ESPFolder:Destroy() end
     ScreenGui:Destroy()
 end
 
-local function getHoldTimeForKey(keyStr)
-    keyStr = string.upper(tostring(keyStr))
-    if CustomHoldTimes[keyStr] and CustomHoldTimes[keyStr] > 0 then return CustomHoldTimes[keyStr] end
-    return KeybindHoldTime
-end
+local function getHoldTimeForKey(keyStr) keyStr=string.upper(tostring(keyStr)) if CustomHoldTimes[keyStr] and CustomHoldTimes[keyStr]>0 then return CustomHoldTimes[keyStr] end return KeybindHoldTime end
+local function simulateKeyAndClick(kc,keyStr) local clickHold=getHoldTimeForKey(keyStr or "") VirtualInputManager:SendKeyEvent(true,kc,false,game) VirtualInputManager:SendMouseButtonEvent(0,0,0,true,game,0) task.wait(clickHold) VirtualInputManager:SendMouseButtonEvent(0,0,0,false,game,0) task.wait(0.05) VirtualInputManager:SendKeyEvent(false,kc,false,game) end
 
-local function simulateKeyAndClick(kc, keyStr)
-    local clickHold = getHoldTimeForKey(keyStr or "")
-    VirtualInputManager:SendKeyEvent(true, kc, false, game)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-    task.wait(clickHold)
-    VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-    task.wait(0.05)
-    VirtualInputManager:SendKeyEvent(false, kc, false, game)
-end
+local function sendWebhook(message) if WebhookURL=="" or #WebhookURL<20 then return end local now=tick() if now-LastWebhookTime<15 then return end LastWebhookTime=now task.spawn(function() pcall(function() local req=(syn and syn.request) or (http and http.request) or http_request or request if req then req({Url=WebhookURL,Method="POST",Headers={["Content-Type"]="application/json"},Body=HttpService:JSONEncode({content=message})}) end end) end) end
 
-local function sendWebhook(message)
-    if WebhookURL == "" or #WebhookURL < 20 then return end
-    local now = tick()
-    if now - LastWebhookTime < 15 then return end
-    LastWebhookTime = now
-    task.spawn(function()
-        pcall(function()
-            local req = (syn and syn.request) or (http and http.request) or http_request or request
-            if req then req({Url = WebhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode({content = message})}) end
-        end)
-    end)
-end
+local function getCurrentLevel() local lvlNum=nil pcall(function() local hud=LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI") and LocalPlayer.PlayerGui.UI:FindFirstChild("HUD") if hud then for _,d in ipairs(hud:GetDescendants()) do if d.Name=="Level" and (d:IsA("TextLabel") or d:IsA("TextButton")) then local num=tonumber(string.match(d.Text,"%d+")) if num then lvlNum=num end break end end end end) return lvlNum end
 
-local function getCurrentLevel()
-    local lvlNum = nil
+local function startLevelCheck() if LevelCheckConnection then LevelCheckConnection:Disconnect() end local fc=0 LevelCheckConnection=RunService.Heartbeat:Connect(function() fc=fc+1 if fc<600 then return end fc=0 local lvl=getCurrentLevel() if not lvl then return end if LastDetectedLevel==nil then LastDetectedLevel=lvl return end if lvl==LastDetectedLevel then return end if WebhookSentLevels[lvl] then LastDetectedLevel=lvl return end WebhookSentLevels[lvl]=true LastDetectedLevel=lvl local msg if lvl==100 then msg="@everyone\n\n🎉 **LEVEL 100 !**\nNouveau monde : **Cake** !\n\n🎮 Supernova Hub" elseif lvl==200 then msg="@everyone\n\n🔥 **LEVEL 200 !**\nTu peux affronter **Kaido** !\n\n🎮 Supernova Hub" elseif lvl==300 then msg="@everyone\n\n🍎 **LEVEL 300 !**\nFruit **MAX** !\n\n🎮 Supernova Hub" else msg="🎮 **Supernova Hub** — Lvl **"..lvl.."** !" end sendWebhook(msg) end) end
+
+local function removeSpaces(str) return string.gsub(string.gsub(str,"%s+",""),"%-","") end
+local function isOnCooldown(attackName) local found=false local cn=removeSpaces(string.lower(attackName)) pcall(function() local function chk(f) if not f or found then return end for _,cd in ipairs(f:GetChildren()) do if removeSpaces(string.lower(cd.Name))==cn then found=true return end end for k,v in pairs(f:GetAttributes()) do if removeSpaces(string.lower(k))==cn then if (type(v)=="number" and v>0) or (type(v)=="boolean" and v) then found=true return end end end end chk(LocalPlayer:FindFirstChild("Cooldowns")) chk(LocalPlayer:FindFirstChild("cooldowns")) local bp=LocalPlayer:FindFirstChild("Backpack") if bp then chk(bp:FindFirstChild("Cooldowns")) chk(bp:FindFirstChild("cooldowns")) end end) return found end
+
+local function isAttackLocked(keyName) local locked=false pcall(function() local hotbar=LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI") and LocalPlayer.PlayerGui.UI:FindFirstChild("Hotbar") if not hotbar then return end local uk=string.upper(tostring(keyName)) for _,slot in ipairs(hotbar:GetChildren()) do if slot:IsA("Frame") or slot:IsA("TextButton") or slot:IsA("ImageButton") then local match=slot.Name==keyName or slot.Name==uk if not match then for _,ch in ipairs(slot:GetChildren()) do if (ch:IsA("TextLabel") or ch:IsA("TextButton")) and (ch.Text==keyName or ch.Text==uk) then match=true break end end end if match then for _,desc in ipairs(slot:GetDescendants()) do if desc.Name=="Requirement" and desc.Visible==true then locked=true return end end end end end end) return locked end
+
+local function getBackpackAttacks() local attacks={} local bp=LocalPlayer:FindFirstChild("Backpack") if not bp then return attacks end local function tryAttr(obj) for k,v in pairs(obj:GetAttributes()) do local lk=string.lower(k) if lk=="keybind" or lk=="key" or lk=="hotkey" or lk=="bind" or lk=="slot" then return tostring(v) end end return nil end local function tryChildren(obj) for _,ch in ipairs(obj:GetChildren()) do if (ch:IsA("StringValue") or ch:IsA("IntValue") or ch:IsA("NumberValue")) then local cn=string.lower(ch.Name) if cn=="keybind" or cn=="key" or cn=="hotkey" or cn=="bind" then return tostring(ch.Value) end end end return nil end for _,item in ipairs(bp:GetChildren()) do local keyBind=nil local name=item.Name if item:IsA("Tool") then keyBind=tryChildren(item) or tryAttr(item) elseif item:IsA("LocalScript") or item:IsA("ModuleScript") then keyBind=tryAttr(item) or tryChildren(item) if not keyBind then local un=string.upper(name) if un=="SORU" or un=="DASH" or string.find(un,"SORU") then keyBind="E" elseif string.find(un,"ULTIMATE") or string.find(un,"ULT") then keyBind="G" end end end if not keyBind then keyBind=tryChildren(item) or tryAttr(item) end if keyBind then table.insert(attacks,{name=name,key=string.upper(keyBind),item=item}) end end local pri={["G"]=1,["1"]=2,["2"]=3,["3"]=4,["4"]=5,["5"]=6,["6"]=7,["E"]=8} table.sort(attacks,function(a,b) return (pri[a.key] or 99)<(pri[b.key] or 99) end) return attacks end
+
+local function getAllAttacksFromHotbar() local attacks={} pcall(function() local hotbar=LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI") and LocalPlayer.PlayerGui.UI:FindFirstChild("Hotbar") if not hotbar then return end for _,slot in ipairs(hotbar:GetChildren()) do if slot:IsA("Frame") or slot:IsA("TextButton") or slot:IsA("ImageButton") then local keyText,atkName,isLocked=nil,nil,false for _,desc in ipairs(slot:GetDescendants()) do if desc.Name=="Requirement" and desc.Visible==true then isLocked=true end if desc:IsA("TextLabel") or desc:IsA("TextButton") then local txt=desc.Text if txt and #txt==1 and (tonumber(txt) or txt=="E" or txt=="G" or txt=="e" or txt=="g") then keyText=string.upper(txt) elseif txt and #txt>1 and desc.Name~="Requirement" then if not atkName or #txt>#atkName then atkName=txt end end end end if keyText and atkName then table.insert(attacks,{name=atkName,key=keyText,locked=isLocked}) end end end end) local pri={["G"]=1,["1"]=2,["2"]=3,["3"]=4,["4"]=5,["5"]=6,["6"]=7,["E"]=8} table.sort(attacks,function(a,b) return (pri[a.key] or 99)<(pri[b.key] or 99) end) return attacks end
+
+local function stringToKeyCode(str) str=string.upper(tostring(str)) local map={["1"]=Enum.KeyCode.One,["2"]=Enum.KeyCode.Two,["3"]=Enum.KeyCode.Three,["4"]=Enum.KeyCode.Four,["5"]=Enum.KeyCode.Five,["6"]=Enum.KeyCode.Six,["E"]=Enum.KeyCode.E,["G"]=Enum.KeyCode.G,["Q"]=Enum.KeyCode.Q,["R"]=Enum.KeyCode.R,["T"]=Enum.KeyCode.T,["F"]=Enum.KeyCode.F} return map[str] end
+
+local function getPlayerBounty(playerName) local bounty=nil pcall(function() local p=Players:FindFirstChild(playerName) if p then local ls=p:FindFirstChild("leaderstats") if ls then local b=ls:FindFirstChild("Bounty") if b then bounty=b.Value end end end end) return bounty end
+
+local function getPlayerCurrentSlot(playerName)
+    local slotValue=nil
     pcall(function()
-        local hud = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI") and LocalPlayer.PlayerGui.UI:FindFirstChild("HUD")
-        if hud then
-            for _, d in ipairs(hud:GetDescendants()) do
-                if d.Name == "Level" and (d:IsA("TextLabel") or d:IsA("TextButton")) then
-                    local num = tonumber(string.match(d.Text, "%d+"))
-                    if num then lvlNum = num end
-                    break
-                end
-            end
-        end
-    end)
-    return lvlNum
-end
-
-local function startLevelCheck()
-    if LevelCheckConnection then LevelCheckConnection:Disconnect() end
-    local fc = 0
-    LevelCheckConnection = RunService.Heartbeat:Connect(function()
-        fc = fc + 1
-        if fc < 600 then return end
-        fc = 0
-        local lvl = getCurrentLevel()
-        if not lvl then return end
-        if LastDetectedLevel == nil then
-            LastDetectedLevel = lvl
-            return
-        end
-        if lvl == LastDetectedLevel then return end
-        if WebhookSentLevels[lvl] then
-            LastDetectedLevel = lvl
-            return
-        end
-        WebhookSentLevels[lvl] = true
-        LastDetectedLevel = lvl
-        local msg
-        if lvl == 100 then msg = "@everyone\n\n🎉🌊 **LEVEL 100 !**\n\nNouveau monde : **Cake** ! 🍰\n\n🎮 Supernova Hub"
-        elseif lvl == 200 then msg = "@everyone\n\n🔥🐉 **LEVEL 200 !**\n\nTu peux affronter **Kaido** ! ⚔️\n\n🎮 Supernova Hub"
-        elseif lvl == 300 then msg = "@everyone\n\n🍎⭐ **LEVEL 300 !**\n\nFruit **LVL MAX** ! 👑\n\n🎮 Supernova Hub"
-        else msg = "🎮 **Supernova Hub** — Lvl **" .. lvl .. "** !" end
-        sendWebhook(msg)
-    end)
-end
-
-local function removeSpaces(str)
-    str = string.gsub(str, "%s+", "")
-    str = string.gsub(str, "%-", "")
-    return str
-end
-
-local function isOnCooldown(attackName)
-    local found = false
-    local cleanName = removeSpaces(string.lower(attackName))
-    pcall(function()
-        local function checkFolder(folder)
-            if not folder or found then return end
-            for _, cd in ipairs(folder:GetChildren()) do
-                if removeSpaces(string.lower(cd.Name)) == cleanName then found = true return end
-            end
-            for k, v in pairs(folder:GetAttributes()) do
-                if removeSpaces(string.lower(k)) == cleanName then
-                    if (type(v) == "number" and v > 0) or (type(v) == "boolean" and v) then found = true return end
-                end
-            end
-        end
-        checkFolder(LocalPlayer:FindFirstChild("Cooldowns"))
-        checkFolder(LocalPlayer:FindFirstChild("cooldowns"))
-        local bp = LocalPlayer:FindFirstChild("Backpack")
-        if bp then checkFolder(bp:FindFirstChild("Cooldowns")) checkFolder(bp:FindFirstChild("cooldowns")) end
-    end)
-    return found
-end
-
-local function isAttackLocked(keyName)
-    local locked = false
-    pcall(function()
-        local hotbar = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI") and LocalPlayer.PlayerGui.UI:FindFirstChild("Hotbar")
-        if not hotbar then return end
-        local uk = string.upper(tostring(keyName))
-        for _, slot in ipairs(hotbar:GetChildren()) do
-            if slot:IsA("Frame") or slot:IsA("TextButton") or slot:IsA("ImageButton") then
-                local match = slot.Name == keyName or slot.Name == uk
-                if not match then
-                    for _, ch in ipairs(slot:GetChildren()) do
-                        if (ch:IsA("TextLabel") or ch:IsA("TextButton")) and (ch.Text == keyName or ch.Text == uk) then match = true break end
-                    end
-                end
-                if match then
-                    for _, desc in ipairs(slot:GetDescendants()) do
-                        if desc.Name == "Requirement" and desc.Visible == true then locked = true return end
-                    end
-                end
-            end
-        end
-    end)
-    return locked
-end
-
-local function getBackpackAttacks()
-    local attacks = {}
-    local bp = LocalPlayer:FindFirstChild("Backpack")
-    if not bp then return attacks end
-    local function tryAttr(obj)
-        for k, v in pairs(obj:GetAttributes()) do
-            local lk = string.lower(k)
-            if lk == "keybind" or lk == "key" or lk == "hotkey" or lk == "bind" or lk == "slot" then return tostring(v) end
-        end
-        return nil
-    end
-    local function tryChildren(obj)
-        for _, ch in ipairs(obj:GetChildren()) do
-            if (ch:IsA("StringValue") or ch:IsA("IntValue") or ch:IsA("NumberValue")) then
-                local cn = string.lower(ch.Name)
-                if cn == "keybind" or cn == "key" or cn == "hotkey" or cn == "bind" then return tostring(ch.Value) end
-            end
-        end
-        return nil
-    end
-    for _, item in ipairs(bp:GetChildren()) do
-        local keyBind = nil
-        local name = item.Name
-        if item:IsA("Tool") then
-            keyBind = tryChildren(item) or tryAttr(item)
-        elseif item:IsA("LocalScript") or item:IsA("ModuleScript") then
-            keyBind = tryAttr(item) or tryChildren(item)
-            if not keyBind then
-                local un = string.upper(name)
-                if un == "SORU" or un == "DASH" or string.find(un, "SORU") then keyBind = "E"
-                elseif string.find(un, "ULTIMATE") or string.find(un, "ULT") then keyBind = "G" end
-            end
-        end
-        if not keyBind then keyBind = tryChildren(item) or tryAttr(item) end
-        if keyBind then table.insert(attacks, {name = name, key = string.upper(keyBind), item = item}) end
-    end
-    local pri = {["G"]=1,["1"]=2,["2"]=3,["3"]=4,["4"]=5,["5"]=6,["6"]=7,["E"]=8}
-    table.sort(attacks, function(a, b) return (pri[a.key] or 99) < (pri[b.key] or 99) end)
-    return attacks
-end
-
-local function getAllAttacksFromHotbar()
-    local attacks = {}
-    pcall(function()
-        local hotbar = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI") and LocalPlayer.PlayerGui.UI:FindFirstChild("Hotbar")
-        if not hotbar then return end
-        for _, slot in ipairs(hotbar:GetChildren()) do
-            if slot:IsA("Frame") or slot:IsA("TextButton") or slot:IsA("ImageButton") then
-                local keyText = nil
-                local atkName = nil
-                local isLocked = false
-                for _, desc in ipairs(slot:GetDescendants()) do
-                    if desc.Name == "Requirement" and desc.Visible == true then isLocked = true end
-                    if desc:IsA("TextLabel") or desc:IsA("TextButton") then
-                        local txt = desc.Text
-                        if txt and #txt == 1 and (tonumber(txt) or txt == "E" or txt == "G" or txt == "e" or txt == "g") then
-                            keyText = string.upper(txt)
-                        elseif txt and #txt > 1 and desc.Name ~= "Requirement" then
-                            if not atkName or #txt > #atkName then atkName = txt end
+        local p=Players:FindFirstChild(playerName)
+        if p then
+            local md=p:FindFirstChild("MAIN_DATA")
+            if md then
+                local slotObj=md:FindFirstChild("Slot")
+                if slotObj then
+                    if slotObj:IsA("NumberValue") or slotObj:IsA("IntValue") or slotObj:IsA("StringValue") then
+                        slotValue=tostring(slotObj.Value)
+                    else
+                        for _,child in ipairs(slotObj:GetChildren()) do
+                            if child:IsA("NumberValue") or child:IsA("IntValue") or child:IsA("StringValue") then
+                                slotValue=tostring(child.Value)
+                                break
+                            end
                         end
                     end
                 end
-                if keyText and atkName then
-                    table.insert(attacks, {name = atkName, key = keyText, locked = isLocked})
+            end
+        end
+    end)
+    return slotValue
+end
+
+local function getPlayerFruitFromSlot(playerName,slotValue)
+    local fruitName=nil
+    pcall(function()
+        local p=Players:FindFirstChild(playerName)
+        if p then
+            local md=p:FindFirstChild("MAIN_DATA")
+            if md then
+                local slotsFolder=md:FindFirstChild("Slots")
+                if slotsFolder then
+                    local slotEntry=slotsFolder:FindFirstChild(tostring(slotValue))
+                    if slotEntry then
+                        if slotEntry:IsA("StringValue") then
+                            fruitName=slotEntry.Value
+                        else
+                            for _,child in ipairs(slotEntry:GetChildren()) do
+                                if child:IsA("StringValue") then
+                                    fruitName=child.Value
+                                    break
+                                end
+                            end
+                        end
+                    end
                 end
             end
         end
     end)
-    local pri = {["G"]=1,["1"]=2,["2"]=3,["3"]=4,["4"]=5,["5"]=6,["6"]=7,["E"]=8}
-    table.sort(attacks, function(a, b) return (pri[a.key] or 99) < (pri[b.key] or 99) end)
-    return attacks
+    return fruitName
 end
 
-local function stringToKeyCode(str)
-    str = string.upper(tostring(str))
-    local map = {["1"]=Enum.KeyCode.One,["2"]=Enum.KeyCode.Two,["3"]=Enum.KeyCode.Three,["4"]=Enum.KeyCode.Four,["5"]=Enum.KeyCode.Five,["6"]=Enum.KeyCode.Six,["E"]=Enum.KeyCode.E,["G"]=Enum.KeyCode.G,["Q"]=Enum.KeyCode.Q,["R"]=Enum.KeyCode.R,["T"]=Enum.KeyCode.T,["F"]=Enum.KeyCode.F}
-    return map[str]
+local function getPlayerFruitLevel(playerName,fruitName)
+    local level=nil
+    pcall(function()
+        local p=Players:FindFirstChild(playerName)
+        if p then
+            local md=p:FindFirstChild("MAIN_DATA")
+            if md then
+                local fruitsFolder=md:FindFirstChild("Fruits")
+                if fruitsFolder then
+                    local fruitEntry=fruitsFolder:FindFirstChild(fruitName)
+                    if fruitEntry then
+                        local lvlObj=fruitEntry:FindFirstChild("Level")
+                        if lvlObj then
+                            if lvlObj:IsA("NumberValue") or lvlObj:IsA("IntValue") then
+                                level=lvlObj.Value
+                            else
+                                for _,child in ipairs(lvlObj:GetChildren()) do
+                                    if child:IsA("NumberValue") or child:IsA("IntValue") then
+                                        level=child.Value
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    return level
+end
+
+local function getPlayerCurrentFruit(playerName)
+    local slotVal=getPlayerCurrentSlot(playerName)
+    if not slotVal then return nil,nil end
+    local fruitName=getPlayerFruitFromSlot(playerName,slotVal)
+    if not fruitName then return nil,nil end
+    return fruitName,getPlayerFruitLevel(playerName,fruitName)
+end
+
+local function getAllSlotsInfo(playerName)
+    local si={}
+    pcall(function()
+        local p=Players:FindFirstChild(playerName)
+        if p then
+            local md=p:FindFirstChild("MAIN_DATA")
+            if md then
+                local slots=md:FindFirstChild("Slots")
+                if slots then
+                    for _,entry in ipairs(slots:GetChildren()) do
+                        local num=tonumber(entry.Name)
+                        if num then
+                            local fruitName=nil
+                            if entry:IsA("StringValue") then
+                                fruitName=entry.Value
+                            else
+                                for _,child in ipairs(entry:GetChildren()) do
+                                    if child:IsA("StringValue") then
+                                        fruitName=child.Value
+                                        break
+                                    end
+                                end
+                            end
+                            if fruitName then table.insert(si,{slot=num,fruit=fruitName}) end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    table.sort(si,function(a,b) return a.slot<b.slot end)
+    return si
+end
+
+local function getAllFruits(playerName)
+    local fl={}
+    pcall(function()
+        local p=Players:FindFirstChild(playerName)
+        if p then
+            local md=p:FindFirstChild("MAIN_DATA")
+            if md then
+                local fruits=md:FindFirstChild("Fruits")
+                if fruits then
+                    for _,ff in ipairs(fruits:GetChildren()) do
+                        local lvl=nil
+                        local lo=ff:FindFirstChild("Level")
+                        if lo then
+                            if lo:IsA("NumberValue") or lo:IsA("IntValue") then
+                                lvl=lo.Value
+                            else
+                                for _,child in ipairs(lo:GetChildren()) do
+                                    if child:IsA("NumberValue") or child:IsA("IntValue") then
+                                        lvl=child.Value
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                        table.insert(fl,{name=ff.Name,level=lvl})
+                    end
+                end
+            end
+        end
+    end)
+    return fl
 end
 
 local function createESP()
     if ESPFolder then ESPFolder:Destroy() end
-    ESPFolder = Instance.new("Folder") ESPFolder.Name = "FBG_ESP" ESPFolder.Parent = game.CoreGui
-    local function addESP(character, playerName)
+    ESPFolder=Instance.new("Folder") ESPFolder.Name="FBG_ESP" ESPFolder.Parent=game.CoreGui
+    local function addESP(character,playerName)
         if not character or not character:FindFirstChild("HumanoidRootPart") then return end
         if character:FindFirstChild("FBG_ESP_GUI") then character.FBG_ESP_GUI:Destroy() end
         if character:FindFirstChild("FBG_ESP_HL") then character.FBG_ESP_HL:Destroy() end
-        local bb = Instance.new("BillboardGui") bb.Name = "FBG_ESP_GUI" bb.Parent = character bb.Adornee = character.HumanoidRootPart bb.Size = UDim2.new(0,200,0,50) bb.StudsOffset = Vector3.new(0,3,0) bb.AlwaysOnTop = true bb.MaxDistance = 10000
-        local nl = Instance.new("TextLabel") nl.Name = "NameLabel" nl.Parent = bb nl.BackgroundTransparency = 1 nl.Size = UDim2.new(1,0,0.5,0) nl.Font = Enum.Font.GothamBold nl.Text = playerName nl.TextColor3 = CurrentTheme.accent nl.TextSize = 14 nl.TextStrokeTransparency = 0.3
-        local dl = Instance.new("TextLabel") dl.Name = "DistLabel" dl.Parent = bb dl.BackgroundTransparency = 1 dl.Position = UDim2.new(0,0,0.5,0) dl.Size = UDim2.new(1,0,0.5,0) dl.Font = Enum.Font.Gotham dl.Text = "0m" dl.TextColor3 = Color3.fromRGB(200,200,200) dl.TextSize = 11 dl.TextStrokeTransparency = 0.5
-        local hl = Instance.new("Highlight") hl.Name = "FBG_ESP_HL" hl.Parent = character hl.FillColor = CurrentTheme.accent hl.FillTransparency = 0.7 hl.OutlineColor = CurrentTheme.accent hl.OutlineTransparency = 0.3
+        local bb=Instance.new("BillboardGui") bb.Name="FBG_ESP_GUI" bb.Parent=character bb.Adornee=character.HumanoidRootPart bb.Size=UDim2.new(0,200,0,90) bb.StudsOffset=Vector3.new(0,4,0) bb.AlwaysOnTop=true bb.MaxDistance=10000
+        local cont=Instance.new("Frame") cont.Name="Container" cont.Parent=bb cont.BackgroundTransparency=1 cont.Size=UDim2.new(1,0,1,0)
+        local lay=Instance.new("UIListLayout") lay.Parent=cont lay.SortOrder=Enum.SortOrder.LayoutOrder lay.HorizontalAlignment=Enum.HorizontalAlignment.Center lay.Padding=UDim.new(0,1)
+        local nL=Instance.new("TextLabel") nL.Name="NameLabel" nL.Parent=cont nL.BackgroundTransparency=1 nL.Size=UDim2.new(1,0,0,16) nL.Font=Enum.Font.GothamBold nL.Text=playerName nL.TextColor3=CurrentTheme.accent nL.TextSize=14 nL.TextStrokeTransparency=0.3 nL.LayoutOrder=1
+        local bL=Instance.new("TextLabel") bL.Name="BountyLabel" bL.Parent=cont bL.BackgroundTransparency=1 bL.Size=UDim2.new(1,0,0,13) bL.Font=Enum.Font.GothamBold bL.Text="" bL.TextColor3=Color3.fromRGB(255,200,60) bL.TextSize=11 bL.TextStrokeTransparency=0.4 bL.LayoutOrder=2
+        local fL=Instance.new("TextLabel") fL.Name="FruitLabel" fL.Parent=cont fL.BackgroundTransparency=1 fL.Size=UDim2.new(1,0,0,13) fL.Font=Enum.Font.GothamSemibold fL.Text="" fL.TextColor3=Color3.fromRGB(255,140,200) fL.TextSize=10 fL.TextStrokeTransparency=0.4 fL.LayoutOrder=3
+        local lL=Instance.new("TextLabel") lL.Name="LevelLabel" lL.Parent=cont lL.BackgroundTransparency=1 lL.Size=UDim2.new(1,0,0,12) lL.Font=Enum.Font.Gotham lL.Text="" lL.TextColor3=Color3.fromRGB(180,255,180) lL.TextSize=10 lL.TextStrokeTransparency=0.4 lL.LayoutOrder=4
+        local dL=Instance.new("TextLabel") dL.Name="DistLabel" dL.Parent=cont dL.BackgroundTransparency=1 dL.Size=UDim2.new(1,0,0,12) dL.Font=Enum.Font.Gotham dL.Text="0m" dL.TextColor3=Color3.fromRGB(200,200,200) dL.TextSize=10 dL.TextStrokeTransparency=0.5 dL.LayoutOrder=5
+        local hl=Instance.new("Highlight") hl.Name="FBG_ESP_HL" hl.Parent=character hl.FillColor=CurrentTheme.accent hl.FillTransparency=0.7 hl.OutlineColor=CurrentTheme.accent hl.OutlineTransparency=0.3
     end
-    local cf = workspace:FindFirstChild("Characters")
-    if cf then local pf = cf:FindFirstChild("Players") if pf then
-        for _, ch in ipairs(pf:GetChildren()) do if ch.Name ~= LocalPlayer.Name then addESP(ch, ch.Name) end end
-        pf.ChildAdded:Connect(function(child) task.wait(1) if ESPEnabled and child.Name ~= LocalPlayer.Name then addESP(child, child.Name) end end)
+    local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then
+        for _,ch in ipairs(pf:GetChildren()) do if ch.Name~=LocalPlayer.Name then addESP(ch,ch.Name) end end
+        pf.ChildAdded:Connect(function(child) task.wait(1) if ESPEnabled and child.Name~=LocalPlayer.Name then addESP(child,child.Name) end end)
     end end
     if ESPUpdateConnection then ESPUpdateConnection:Disconnect() end
-    local ec = 0
-    ESPUpdateConnection = RunService.Heartbeat:Connect(function()
-        if not ESPEnabled then return end ec = ec + 1 if ec < 15 then return end ec = 0
-        local cf2 = workspace:FindFirstChild("Characters") if not cf2 then return end local pf2 = cf2:FindFirstChild("Players") if not pf2 then return end
-        for _, ch in ipairs(pf2:GetChildren()) do if ch.Name ~= LocalPlayer.Name then
-            local bb = ch:FindFirstChild("FBG_ESP_GUI") local hl = ch:FindFirstChild("FBG_ESP_HL")
-            if not bb or not hl then addESP(ch, ch.Name) bb = ch:FindFirstChild("FBG_ESP_GUI") hl = ch:FindFirstChild("FBG_ESP_HL") end
-            if hl then hl.FillColor = CurrentTheme.accent hl.OutlineColor = CurrentTheme.accent end
-            if bb then local nl = bb:FindFirstChild("NameLabel") if nl then nl.TextColor3 = CurrentTheme.accent end
-                local dl = bb:FindFirstChild("DistLabel") if dl then local mc = getMyCharacter() if mc and mc:FindFirstChild("HumanoidRootPart") and ch:FindFirstChild("HumanoidRootPart") then dl.Text = math.floor((mc.HumanoidRootPart.Position - ch.HumanoidRootPart.Position).Magnitude).."m" end end end
+    local ec=0
+    ESPUpdateConnection=RunService.Heartbeat:Connect(function()
+        if not ESPEnabled then return end ec=ec+1 if ec<20 then return end ec=0
+        local cf2=workspace:FindFirstChild("Characters") if not cf2 then return end local pf2=cf2:FindFirstChild("Players") if not pf2 then return end
+        for _,ch in ipairs(pf2:GetChildren()) do if ch.Name~=LocalPlayer.Name then
+            local bb=ch:FindFirstChild("FBG_ESP_GUI") local hl=ch:FindFirstChild("FBG_ESP_HL")
+            if not bb or not hl then addESP(ch,ch.Name) bb=ch:FindFirstChild("FBG_ESP_GUI") hl=ch:FindFirstChild("FBG_ESP_HL") end
+            if hl then hl.FillColor=CurrentTheme.accent hl.OutlineColor=CurrentTheme.accent end
+            if bb then local cont=bb:FindFirstChild("Container") if cont then
+                local nL=cont:FindFirstChild("NameLabel") if nL then nL.TextColor3=CurrentTheme.accent nL.Visible=ESPOptions.showName end
+                local bL=cont:FindFirstChild("BountyLabel") if bL then bL.Visible=ESPOptions.showBounty if ESPOptions.showBounty then local b=getPlayerBounty(ch.Name) bL.Text=b and ("💰 "..tostring(b)) or "" end end
+                local fL=cont:FindFirstChild("FruitLabel") if fL then fL.Visible=ESPOptions.showFruit if ESPOptions.showFruit then local f=getPlayerCurrentFruit(ch.Name) fL.Text=f and ("🍎 "..f) or "" end end
+                local lL=cont:FindFirstChild("LevelLabel") if lL then lL.Visible=ESPOptions.showLevel if ESPOptions.showLevel then local f,l=getPlayerCurrentFruit(ch.Name) lL.Text=(f and l) and ("Lvl "..tostring(l)) or "" end end
+                local dL=cont:FindFirstChild("DistLabel") if dL then dL.Visible=ESPOptions.showDistance if ESPOptions.showDistance then local mc=getMyCharacter() if mc and mc:FindFirstChild("HumanoidRootPart") and ch:FindFirstChild("HumanoidRootPart") then dL.Text=math.floor((mc.HumanoidRootPart.Position-ch.HumanoidRootPart.Position).Magnitude).."m" end end end
+            end end
         end end
     end)
 end
 
 local function removeESP()
-    if ESPUpdateConnection then ESPUpdateConnection:Disconnect() ESPUpdateConnection = nil end
-    local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then
-        for _, ch in ipairs(pf:GetChildren()) do if ch:FindFirstChild("FBG_ESP_GUI") then ch.FBG_ESP_GUI:Destroy() end if ch:FindFirstChild("FBG_ESP_HL") then ch.FBG_ESP_HL:Destroy() end end
-    end end
-    if ESPFolder then ESPFolder:Destroy() ESPFolder = nil end
+    if ESPUpdateConnection then ESPUpdateConnection:Disconnect() ESPUpdateConnection=nil end
+    local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then for _,ch in ipairs(pf:GetChildren()) do if ch:FindFirstChild("FBG_ESP_GUI") then ch.FBG_ESP_GUI:Destroy() end if ch:FindFirstChild("FBG_ESP_HL") then ch.FBG_ESP_HL:Destroy() end end end end
+    if ESPFolder then ESPFolder:Destroy() ESPFolder=nil end
 end
 
 local DetectedSea = detectCurrentSea()
 
-local LF = Instance.new("Frame") LF.Parent = ScreenGui LF.BackgroundColor3 = Color3.fromRGB(10,10,14) LF.Position = UDim2.new(0.5,-180,0.5,-65) LF.Size = UDim2.new(0,360,0,130) makeCorner(LF, 14) makeStroke(LF, Color3.fromRGB(60,60,80), 1.5)
-local LT = Instance.new("TextLabel") LT.Parent = LF LT.BackgroundTransparency = 1 LT.Position = UDim2.new(0,0,0,18) LT.Size = UDim2.new(1,0,0,28) LT.Font = Enum.Font.GothamBold LT.Text = "⚔️ Supernova Hub" LT.TextColor3 = Color3.fromRGB(225,225,235) LT.TextSize = 17
-local LS = Instance.new("TextLabel") LS.Parent = LF LS.BackgroundTransparency = 1 LS.Position = UDim2.new(0,0,0,48) LS.Size = UDim2.new(1,0,0,20) LS.Font = Enum.Font.Gotham LS.Text = "Chargement..." LS.TextColor3 = Color3.fromRGB(140,140,160) LS.TextSize = 12
-local BB = Instance.new("Frame") BB.Parent = LF BB.BackgroundColor3 = Color3.fromRGB(25,25,35) BB.Position = UDim2.new(0.08,0,0,80) BB.Size = UDim2.new(0.84,0,0,8) makeCorner(BB, 4)
-local BFi = Instance.new("Frame") BFi.Parent = BB BFi.BackgroundColor3 = CurrentTheme.accent BFi.Size = UDim2.new(0,0,1,0) makeCorner(BFi, 4)
-local LP = Instance.new("TextLabel") LP.Parent = LF LP.BackgroundTransparency = 1 LP.Position = UDim2.new(0,0,0,95) LP.Size = UDim2.new(1,0,0,20) LP.Font = Enum.Font.GothamSemibold LP.Text = "0%" LP.TextColor3 = CurrentTheme.accent LP.TextSize = 11
+local LF=Instance.new("Frame") LF.Parent=ScreenGui LF.BackgroundColor3=Color3.fromRGB(10,10,14) LF.Position=UDim2.new(0.5,-180,0.5,-65) LF.Size=UDim2.new(0,360,0,130) makeCorner(LF,14) makeStroke(LF,Color3.fromRGB(60,60,80),1.5)
+local LT=Instance.new("TextLabel") LT.Parent=LF LT.BackgroundTransparency=1 LT.Position=UDim2.new(0,0,0,18) LT.Size=UDim2.new(1,0,0,28) LT.Font=Enum.Font.GothamBold LT.Text="⚔️ Supernova Hub" LT.TextColor3=Color3.fromRGB(225,225,235) LT.TextSize=17
+local LS=Instance.new("TextLabel") LS.Parent=LF LS.BackgroundTransparency=1 LS.Position=UDim2.new(0,0,0,48) LS.Size=UDim2.new(1,0,0,20) LS.Font=Enum.Font.Gotham LS.Text="Chargement..." LS.TextColor3=Color3.fromRGB(140,140,160) LS.TextSize=12
+local BB=Instance.new("Frame") BB.Parent=LF BB.BackgroundColor3=Color3.fromRGB(25,25,35) BB.Position=UDim2.new(0.08,0,0,80) BB.Size=UDim2.new(0.84,0,0,8) makeCorner(BB,4)
+local BFi=Instance.new("Frame") BFi.Parent=BB BFi.BackgroundColor3=CurrentTheme.accent BFi.Size=UDim2.new(0,0,1,0) makeCorner(BFi,4)
+local LP=Instance.new("TextLabel") LP.Parent=LF LP.BackgroundTransparency=1 LP.Position=UDim2.new(0,0,0,95) LP.Size=UDim2.new(1,0,0,20) LP.Font=Enum.Font.GothamSemibold LP.Text="0%" LP.TextColor3=CurrentTheme.accent LP.TextSize=11
 
 task.spawn(function()
-    for _, s in ipairs({{t="Initialisation...",p=0.15},{t="Settings...",p=0.3},{t="Sea "..DetectedSea,p=0.5},{t="Scan...",p=0.7},{t="Prêt !",p=1.0}}) do
-        LS.Text = s.t tween(BFi, {Size=UDim2.new(s.p,0,1,0)}, 0.3) LP.Text = math.floor(s.p*100).."%" task.wait(0.3)
-    end
-    task.wait(0.2) BFi.BackgroundColor3 = Color3.fromRGB(80,220,120) task.wait(0.3)
-    tween(LF, {BackgroundTransparency=1}, 0.3)
-    for _, ch in ipairs(LF:GetDescendants()) do
-        if ch:IsA("TextLabel") then tween(ch, {TextTransparency=1}, 0.3) elseif ch:IsA("Frame") then tween(ch, {BackgroundTransparency=1}, 0.3) elseif ch:IsA("UIStroke") then tween(ch, {Transparency=1}, 0.3) end
-    end
-    task.wait(0.35) LF:Destroy()
-    LastDetectedLevel = getCurrentLevel()
-    buildMainGui()
+    for _,s in ipairs({{t="Initialisation...",p=0.15},{t="Settings...",p=0.3},{t="Sea "..DetectedSea,p=0.5},{t="Scan...",p=0.7},{t="Prêt !",p=1.0}}) do LS.Text=s.t tween(BFi,{Size=UDim2.new(s.p,0,1,0)},0.3) LP.Text=math.floor(s.p*100).."%" task.wait(0.3) end
+    task.wait(0.2) BFi.BackgroundColor3=Color3.fromRGB(80,220,120) task.wait(0.3)
+    tween(LF,{BackgroundTransparency=1},0.3) for _,ch in ipairs(LF:GetDescendants()) do if ch:IsA("TextLabel") then tween(ch,{TextTransparency=1},0.3) elseif ch:IsA("Frame") then tween(ch,{BackgroundTransparency=1},0.3) elseif ch:IsA("UIStroke") then tween(ch,{Transparency=1},0.3) end end
+    task.wait(0.35) LF:Destroy() LastDetectedLevel=getCurrentLevel() buildMainGui()
 end)
 
 function buildMainGui()
-    for k in pairs(ThemedElements) do ThemedElements[k] = {} end
+    for k in pairs(ThemedElements) do ThemedElements[k]={} end
     startLevelCheck()
 
-    local S1D = {name="Sea 1",farms={{n="Farm 1",x=-998.6223,y=696.9323,z=-1022.4783},{n="Farm 2",x=1550.8496,y=737.5434,z=200.3926},{n="Farm 3",x=1279.8958,y=734.0034,z=1275.3406}},bosses={{n="Phœnix",x=-688.5557,y=960.183,z=516.2355}},zones={{n="Sea Change",x=1141.8928,y=733.2534,z=1013.9877,i="🚢"},{n="Arène",x=772.4551,y=741.8534,z=811.4039,i="⚔️"},{n="Safe",x=409.0104,y=737.9474,z=-678.9033,i="🛡️"},{n="Milieu",x=-30.2588,y=1097.226,z=-31.7645,i="🎯"}}}
-    local S2D = {name="Sea 2",farms={{n="Farm 1",x=610.9812,y=1226.5872,z=-1286.8816},{n="Farm 2",x=460.8211,y=147.0219,z=-3829.3518},{n="Farm 3",x=508.6341,y=1702.09,z=-1494.4027}},bosses={{n="Big Mom",x=455.9437,y=163.0124,z=-1728.1251},{n="Katakuri",x=510.7729,y=-1016.309,z=-2721.7109}},zones={{n="Sea Change",x=374.9438,y=148.1493,z=-2498.448,i="🚢"},{n="Arène",x=1643.5009,y=213.1493,z=-2617.4768,i="⚔️"},{n="Safe",x=575.8317,y=203.2899,z=-3433.804,i="🛡️"}}}
-    local S3D = {name="Sea 3",farms={{n="Farm 1",x=-1308.5636,y=189.155,z=411.5455},{n="Farm 2",x=-5450.729,y=1138.5234,z=656.1223},{n="Farm 3",x=-4921.9092,y=1275.0233,z=-319.2199}},bosses={{n="Kaido",x=-4385.4951,y=1599.5482,z=145.9456}},zones={{n="Sea Change",x=-2711.8054,y=164.1261,z=399.1519,i="🚢"},{n="Arène",x=-4602.231,y=558.5235,z=75.0911,i="⚔️"},{n="Safe",x=-4340.8281,y=568.0639,z=151.008,i="🛡️"},{n="V2 Fruit",x=-5173.7642,y=701.5235,z=374.3079,i="🍎"}},extra="📜 V2: Kaido 5x · 30 Titles · Fruit 300\nV2: TSRubber, Dragon, Ice, Magma, Leopard, Light, Flame"}
+    local S1D={name="Sea 1",farms={{n="Farm 1",x=-998.6223,y=696.9323,z=-1022.4783},{n="Farm 2",x=1550.8496,y=737.5434,z=200.3926},{n="Farm 3",x=1279.8958,y=734.0034,z=1275.3406}},bosses={{n="Phœnix",x=-688.5557,y=960.183,z=516.2355}},zones={{n="Sea Change",x=1141.8928,y=733.2534,z=1013.9877,i="🚢"},{n="Arène",x=772.4551,y=741.8534,z=811.4039,i="⚔️"},{n="Safe",x=409.0104,y=737.9474,z=-678.9033,i="🛡️"},{n="Milieu",x=-30.2588,y=1097.226,z=-31.7645,i="🎯"}}}
+    local S2D={name="Sea 2",farms={{n="Farm 1",x=610.9812,y=1226.5872,z=-1286.8816},{n="Farm 2",x=460.8211,y=147.0219,z=-3829.3518},{n="Farm 3",x=508.6341,y=1702.09,z=-1494.4027}},bosses={{n="Big Mom",x=455.9437,y=163.0124,z=-1728.1251},{n="Katakuri",x=510.7729,y=-1016.309,z=-2721.7109}},zones={{n="Sea Change",x=374.9438,y=148.1493,z=-2498.448,i="🚢"},{n="Arène",x=1643.5009,y=213.1493,z=-2617.4768,i="⚔️"},{n="Safe",x=575.8317,y=203.2899,z=-3433.804,i="🛡️"}}}
+    local S3D={name="Sea 3",farms={{n="Farm 1",x=-1308.5636,y=189.155,z=411.5455},{n="Farm 2",x=-5450.729,y=1138.5234,z=656.1223},{n="Farm 3",x=-4921.9092,y=1275.0233,z=-319.2199}},bosses={{n="Kaido",x=-4385.4951,y=1599.5482,z=145.9456}},zones={{n="Sea Change",x=-2711.8054,y=164.1261,z=399.1519,i="🚢"},{n="Arène",x=-4602.231,y=558.5235,z=75.0911,i="⚔️"},{n="Safe",x=-4340.8281,y=568.0639,z=151.008,i="🛡️"},{n="V2 Fruit",x=-5173.7642,y=701.5235,z=374.3079,i="🍎"}},extra="📜 V2: Kaido 5x · 30 Titles · Fruit 300\nV2: TSRubber, Dragon, Ice, Magma, Leopard, Light, Flame"}
 
-    local MC = Instance.new("Frame") MC.Name = "MainContainer" MC.Parent = ScreenGui MC.BackgroundColor3 = CurrentTheme.bg MC.Position = UDim2.new(0.5,-310,0.5,-255) MC.Size = UDim2.new(0,620,0,510) MC.ClipsDescendants = true MC.Active = true MC.Draggable = true makeCorner(MC, 12) makeStroke(MC, CurrentTheme.stroke, 1, "stroke") registerThemed("bg", MC)
+    local MC=Instance.new("Frame") MC.Name="MainContainer" MC.Parent=ScreenGui MC.BackgroundColor3=CurrentTheme.bg MC.Position=UDim2.new(0.5,-310,0.5,-255) MC.Size=UDim2.new(0,620,0,510) MC.ClipsDescendants=true MC.Active=true MC.Draggable=true makeCorner(MC,12) makeStroke(MC,CurrentTheme.stroke,1,"stroke") registerThemed("bg",MC)
 
-    local MBt = Instance.new("Frame") MBt.Name = "MiniPanel" MBt.Parent = ScreenGui MBt.BackgroundColor3 = CurrentTheme.bg MBt.Position = UDim2.new(0,20,0.5,-75) MBt.Size = UDim2.new(0,220,0,150) MBt.Visible = false MBt.Active = true MBt.Draggable = true MBt.ClipsDescendants = true makeCorner(MBt, 10) makeStroke(MBt, CurrentTheme.stroke, 1.5, "stroke") registerThemed("bg", MBt)
+    local MBt=Instance.new("Frame") MBt.Name="MiniPanel" MBt.Parent=ScreenGui MBt.BackgroundColor3=CurrentTheme.bg MBt.Position=UDim2.new(0,20,0.5,-85) MBt.Size=UDim2.new(0,220,0,170) MBt.Visible=false MBt.Active=true MBt.Draggable=true MBt.ClipsDescendants=true makeCorner(MBt,10) makeStroke(MBt,CurrentTheme.stroke,1.5,"stroke") registerThemed("bg",MBt)
 
-    local miniGem = Instance.new("TextLabel") miniGem.Parent = MBt miniGem.BackgroundTransparency = 1 miniGem.Position = UDim2.new(0,4,0,-18) miniGem.Size = UDim2.new(1,-8,0,16) miniGem.Font = Enum.Font.GothamBold miniGem.Text = "💎 Gems: ..." miniGem.TextColor3 = Color3.fromRGB(255,220,80) miniGem.TextSize = 10 miniGem.TextXAlignment = Enum.TextXAlignment.Left
+    local miniGem=Instance.new("TextLabel") miniGem.Parent=MBt miniGem.BackgroundTransparency=1 miniGem.Position=UDim2.new(0,4,0,-18) miniGem.Size=UDim2.new(1,-8,0,16) miniGem.Font=Enum.Font.GothamBold miniGem.Text="💎 Gems: ..." miniGem.TextColor3=Color3.fromRGB(255,220,80) miniGem.TextSize=10 miniGem.TextXAlignment=Enum.TextXAlignment.Left
 
-    local miniBar = Instance.new("Frame") miniBar.Parent = MBt miniBar.BackgroundColor3 = CurrentTheme.titleBar miniBar.Size = UDim2.new(1,0,0,24) miniBar.BorderSizePixel = 0 makeCorner(miniBar, 10) registerThemed("titleBar", miniBar)
-    local miniBarF = Instance.new("Frame") miniBarF.Parent = miniBar miniBarF.BackgroundColor3 = CurrentTheme.titleBar miniBarF.Position = UDim2.new(0,0,1,-8) miniBarF.Size = UDim2.new(1,0,0,8) miniBarF.BorderSizePixel = 0 registerThemed("titleBar", miniBarF)
-    local miniTitle = Instance.new("TextLabel") miniTitle.Parent = miniBar miniTitle.BackgroundTransparency = 1 miniTitle.Position = UDim2.new(0,8,0,0) miniTitle.Size = UDim2.new(0,90,1,0) miniTitle.Font = Enum.Font.GothamBold miniTitle.Text = "⚔️ Supernova" miniTitle.TextColor3 = CurrentTheme.text miniTitle.TextSize = 10 miniTitle.TextXAlignment = Enum.TextXAlignment.Left registerThemed("text", miniTitle, "TextColor3")
-    local miniFPS = Instance.new("TextLabel") miniFPS.Parent = miniBar miniFPS.BackgroundTransparency = 1 miniFPS.Position = UDim2.new(1,-78,0,0) miniFPS.Size = UDim2.new(0,40,1,0) miniFPS.Font = Enum.Font.GothamBold miniFPS.Text = "60" miniFPS.TextColor3 = Color3.fromRGB(80,220,120) miniFPS.TextSize = 9 miniFPS.TextXAlignment = Enum.TextXAlignment.Right
-    local miniExp = Instance.new("TextButton") miniExp.Parent = miniBar miniExp.BackgroundColor3 = Color3.fromRGB(55,55,68) miniExp.Position = UDim2.new(1,-32,0.5,-8) miniExp.Size = UDim2.new(0,26,0,16) miniExp.Font = Enum.Font.GothamBold miniExp.Text = "<>" miniExp.TextColor3 = Color3.fromRGB(200,200,210) miniExp.TextSize = 9 makeCorner(miniExp, 4) hoverEffect(miniExp, Color3.fromRGB(55,55,68), Color3.fromRGB(75,75,92))
-    local miniLine = Instance.new("Frame") miniLine.Parent = MBt miniLine.BackgroundColor3 = CurrentTheme.accent miniLine.Position = UDim2.new(0,0,0,24) miniLine.Size = UDim2.new(1,0,0,1) miniLine.BorderSizePixel = 0 registerThemed("accent", miniLine, "BackgroundColor3")
+    local miniBar=Instance.new("Frame") miniBar.Parent=MBt miniBar.BackgroundColor3=CurrentTheme.titleBar miniBar.Size=UDim2.new(1,0,0,24) miniBar.BorderSizePixel=0 makeCorner(miniBar,10) registerThemed("titleBar",miniBar)
+    local miniBarF=Instance.new("Frame") miniBarF.Parent=miniBar miniBarF.BackgroundColor3=CurrentTheme.titleBar miniBarF.Position=UDim2.new(0,0,1,-8) miniBarF.Size=UDim2.new(1,0,0,8) miniBarF.BorderSizePixel=0 registerThemed("titleBar",miniBarF)
+    local miniTitle=Instance.new("TextLabel") miniTitle.Parent=miniBar miniTitle.BackgroundTransparency=1 miniTitle.Position=UDim2.new(0,8,0,0) miniTitle.Size=UDim2.new(0,90,1,0) miniTitle.Font=Enum.Font.GothamBold miniTitle.Text="⚔️ Supernova" miniTitle.TextColor3=CurrentTheme.text miniTitle.TextSize=10 miniTitle.TextXAlignment=Enum.TextXAlignment.Left registerThemed("text",miniTitle,"TextColor3")
+    local miniFPS=Instance.new("TextLabel") miniFPS.Parent=miniBar miniFPS.BackgroundTransparency=1 miniFPS.Position=UDim2.new(1,-78,0,0) miniFPS.Size=UDim2.new(0,40,1,0) miniFPS.Font=Enum.Font.GothamBold miniFPS.Text="60" miniFPS.TextColor3=Color3.fromRGB(80,220,120) miniFPS.TextSize=9 miniFPS.TextXAlignment=Enum.TextXAlignment.Right
+    local miniExp=Instance.new("TextButton") miniExp.Parent=miniBar miniExp.BackgroundColor3=Color3.fromRGB(55,55,68) miniExp.Position=UDim2.new(1,-32,0.5,-8) miniExp.Size=UDim2.new(0,26,0,16) miniExp.Font=Enum.Font.GothamBold miniExp.Text="<>" miniExp.TextColor3=Color3.fromRGB(200,200,210) miniExp.TextSize=9 makeCorner(miniExp,4) hoverEffect(miniExp,Color3.fromRGB(55,55,68),Color3.fromRGB(75,75,92))
+    local miniLine=Instance.new("Frame") miniLine.Parent=MBt miniLine.BackgroundColor3=CurrentTheme.accent miniLine.Position=UDim2.new(0,0,0,24) miniLine.Size=UDim2.new(1,0,0,1) miniLine.BorderSizePixel=0 registerThemed("accent",miniLine,"BackgroundColor3")
 
-    local miniIdx = 1
-    local miniPList = {}
-    local function getMPL() local l = {} for _,p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(l,p) end end return l end
+    local miniIdx=1
+    local miniPList={}
+    local function getMPL() local l={} for _,p in ipairs(Players:GetPlayers()) do if p~=LocalPlayer then table.insert(l,p) end end return l end
 
-    local miniPS = Instance.new("Frame") miniPS.Parent = MBt miniPS.BackgroundColor3 = CurrentTheme.card miniPS.Position = UDim2.new(0,6,0,29) miniPS.Size = UDim2.new(1,-12,0,34) makeCorner(miniPS, 6) makeStroke(miniPS, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", miniPS)
-    local miniPN = Instance.new("TextButton") miniPN.Parent = miniPS miniPN.BackgroundTransparency = 1 miniPN.Position = UDim2.new(0,28,0,0) miniPN.Size = UDim2.new(1,-56,1,0) miniPN.Font = Enum.Font.GothamBold miniPN.Text = "..." miniPN.TextColor3 = CurrentTheme.text miniPN.TextSize = 10 miniPN.TextTruncate = Enum.TextTruncate.AtEnd miniPN.AutoButtonColor = false registerThemed("text", miniPN, "TextColor3")
-    local miniPL = Instance.new("TextButton") miniPL.Parent = miniPS miniPL.BackgroundColor3 = CurrentTheme.cardInner miniPL.Position = UDim2.new(0,3,0.5,-11) miniPL.Size = UDim2.new(0,22,0,22) miniPL.Font = Enum.Font.GothamBold miniPL.Text = "◀" miniPL.TextColor3 = CurrentTheme.accent miniPL.TextSize = 10 miniPL.AutoButtonColor = false makeCorner(miniPL, 5) registerThemed("cardInner", miniPL) registerThemed("accent", miniPL, "TextColor3")
-    local miniPR = Instance.new("TextButton") miniPR.Parent = miniPS miniPR.BackgroundColor3 = CurrentTheme.cardInner miniPR.Position = UDim2.new(1,-25,0.5,-11) miniPR.Size = UDim2.new(0,22,0,22) miniPR.Font = Enum.Font.GothamBold miniPR.Text = "▶" miniPR.TextColor3 = CurrentTheme.accent miniPR.TextSize = 10 miniPR.AutoButtonColor = false makeCorner(miniPR, 5) registerThemed("cardInner", miniPR) registerThemed("accent", miniPR, "TextColor3")
+    local miniPS=Instance.new("Frame") miniPS.Parent=MBt miniPS.BackgroundColor3=CurrentTheme.card miniPS.Position=UDim2.new(0,6,0,29) miniPS.Size=UDim2.new(1,-12,0,34) makeCorner(miniPS,6) makeStroke(miniPS,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("card",miniPS)
+    local miniPN=Instance.new("TextButton") miniPN.Parent=miniPS miniPN.BackgroundTransparency=1 miniPN.Position=UDim2.new(0,28,0,0) miniPN.Size=UDim2.new(1,-56,1,0) miniPN.Font=Enum.Font.GothamBold miniPN.Text="..." miniPN.TextColor3=CurrentTheme.text miniPN.TextSize=10 miniPN.TextTruncate=Enum.TextTruncate.AtEnd miniPN.AutoButtonColor=false registerThemed("text",miniPN,"TextColor3")
+    local miniPL=Instance.new("TextButton") miniPL.Parent=miniPS miniPL.BackgroundColor3=CurrentTheme.cardInner miniPL.Position=UDim2.new(0,3,0.5,-11) miniPL.Size=UDim2.new(0,22,0,22) miniPL.Font=Enum.Font.GothamBold miniPL.Text="◀" miniPL.TextColor3=CurrentTheme.accent miniPL.TextSize=10 miniPL.AutoButtonColor=false makeCorner(miniPL,5) registerThemed("cardInner",miniPL) registerThemed("accent",miniPL,"TextColor3")
+    local miniPR=Instance.new("TextButton") miniPR.Parent=miniPS miniPR.BackgroundColor3=CurrentTheme.cardInner miniPR.Position=UDim2.new(1,-25,0.5,-11) miniPR.Size=UDim2.new(0,22,0,22) miniPR.Font=Enum.Font.GothamBold miniPR.Text="▶" miniPR.TextColor3=CurrentTheme.accent miniPR.TextSize=10 miniPR.AutoButtonColor=false makeCorner(miniPR,5) registerThemed("cardInner",miniPR) registerThemed("accent",miniPR,"TextColor3")
 
-    local function updMP() miniPList = getMPL() if #miniPList == 0 then miniPN.Text = "Aucun joueur" miniPN.TextColor3 = Color3.fromRGB(100,100,110) return end if miniIdx > #miniPList then miniIdx = 1 end if miniIdx < 1 then miniIdx = #miniPList end miniPN.Text = "🔹 "..miniPList[miniIdx].DisplayName miniPN.TextColor3 = CurrentTheme.text end
-    miniPL.MouseButton1Click:Connect(function() miniIdx = miniIdx - 1 updMP() end)
-    miniPR.MouseButton1Click:Connect(function() miniIdx = miniIdx + 1 updMP() end)
-    miniPN.MouseButton1Click:Connect(function()
-        miniPList = getMPL() if #miniPList == 0 then return end if miniIdx > #miniPList then miniIdx = 1 end
-        local tp = miniPList[miniIdx] local tc local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then tc = pf:FindFirstChild(tp.Name) end end
-        if not tc then tc = tp.Character end local mc = getMyCharacter()
-        if tc and tc:FindFirstChild("HumanoidRootPart") and mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame = tc.HumanoidRootPart.CFrame*CFrame.new(0,0,3) miniPN.Text = "✅ TP!" miniPN.TextColor3 = Color3.fromRGB(80,220,120)
-        else miniPN.Text = "❌" miniPN.TextColor3 = Color3.fromRGB(255,80,80) end task.wait(0.8) updMP()
-    end)
+    local function updMP() miniPList=getMPL() if #miniPList==0 then miniPN.Text="Aucun joueur" miniPN.TextColor3=Color3.fromRGB(100,100,110) return end if miniIdx>#miniPList then miniIdx=1 end if miniIdx<1 then miniIdx=#miniPList end miniPN.Text="🔹 "..miniPList[miniIdx].DisplayName miniPN.TextColor3=CurrentTheme.text end
+    miniPL.MouseButton1Click:Connect(function() miniIdx=miniIdx-1 updMP() end)
+    miniPR.MouseButton1Click:Connect(function() miniIdx=miniIdx+1 updMP() end)
+    local function tpToMiniPlayer()
+        miniPList=getMPL() if #miniPList==0 then return end if miniIdx>#miniPList then miniIdx=1 end
+        local tp=miniPList[miniIdx] local tc local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then tc=pf:FindFirstChild(tp.Name) end end
+        if not tc then tc=tp.Character end local mc=getMyCharacter()
+        if tc and tc:FindFirstChild("HumanoidRootPart") and mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame=tc.HumanoidRootPart.CFrame*CFrame.new(0,0,3) miniPN.Text="✅ TP!" miniPN.TextColor3=Color3.fromRGB(80,220,120)
+        else miniPN.Text="❌" miniPN.TextColor3=Color3.fromRGB(255,80,80) end task.wait(0.8) updMP()
+    end
+    miniPN.MouseButton1Click:Connect(tpToMiniPlayer)
 
-    local function mkMiniToggle(parent, yPos, icon, getName, getState, toggle)
-        local sec = Instance.new("Frame") sec.Parent = parent sec.BackgroundColor3 = CurrentTheme.card sec.Position = UDim2.new(0,6,0,yPos) sec.Size = UDim2.new(1,-12,0,30) makeCorner(sec, 6) makeStroke(sec, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", sec)
-        local tog = Instance.new("TextButton") tog.Parent = sec tog.BackgroundColor3 = CurrentTheme.cardInner tog.Position = UDim2.new(0,4,0.5,-9) tog.Size = UDim2.new(0,18,0,18) tog.Font = Enum.Font.GothamBold tog.Text = "" tog.TextColor3 = Color3.fromRGB(80,220,120) tog.TextSize = 12 tog.AutoButtonColor = false makeCorner(tog, 4) registerThemed("cardInner", tog)
-        local lbl = Instance.new("TextLabel") lbl.Parent = sec lbl.BackgroundTransparency = 1 lbl.Position = UDim2.new(0,28,0,0) lbl.Size = UDim2.new(1,-32,1,0) lbl.Font = Enum.Font.GothamBold lbl.TextSize = 10 lbl.TextXAlignment = Enum.TextXAlignment.Left
-        local function upd() if getState() then tog.Text = "✓" lbl.Text = icon.." "..getName().." · ON" lbl.TextColor3 = Color3.fromRGB(80,220,120) else tog.Text = "" lbl.Text = icon.." "..getName().." · OFF" lbl.TextColor3 = Color3.fromRGB(255,80,80) end end upd()
+    local function mkMiniToggle(parent,yPos,icon,getName,getState,toggle)
+        local sec=Instance.new("Frame") sec.Parent=parent sec.BackgroundColor3=CurrentTheme.card sec.Position=UDim2.new(0,6,0,yPos) sec.Size=UDim2.new(1,-12,0,30) makeCorner(sec,6) makeStroke(sec,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("card",sec)
+        local tog=Instance.new("TextButton") tog.Parent=sec tog.BackgroundColor3=CurrentTheme.cardInner tog.Position=UDim2.new(0,4,0.5,-9) tog.Size=UDim2.new(0,18,0,18) tog.Font=Enum.Font.GothamBold tog.Text="" tog.TextColor3=Color3.fromRGB(80,220,120) tog.TextSize=12 tog.AutoButtonColor=false makeCorner(tog,4) registerThemed("cardInner",tog)
+        local lbl=Instance.new("TextLabel") lbl.Parent=sec lbl.BackgroundTransparency=1 lbl.Position=UDim2.new(0,28,0,0) lbl.Size=UDim2.new(1,-32,1,0) lbl.Font=Enum.Font.GothamBold lbl.TextSize=10 lbl.TextXAlignment=Enum.TextXAlignment.Left
+        local function upd() if getState() then tog.Text="✓" lbl.Text=icon.." "..getName().." · ON" lbl.TextColor3=Color3.fromRGB(80,220,120) else tog.Text="" lbl.Text=icon.." "..getName().." · OFF" lbl.TextColor3=Color3.fromRGB(255,80,80) end end upd()
         local function onClick() toggle() upd() end
-        tog.MouseButton1Click:Connect(onClick)
-        sec.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then onClick() end end)
+        tog.MouseButton1Click:Connect(onClick) sec.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then onClick() end end)
         return upd
     end
 
-    local updMiniNoclip = mkMiniToggle(MBt, 67, "👻", function() return "Noclip" end, function() return NoclipEnabled end, function()
-        NoclipEnabled = not NoclipEnabled
-        if NoclipEnabled then
-            if NoclipConnection then NoclipConnection:Disconnect() end
-            NoclipConnection = RunService.Stepped:Connect(function() if NoclipEnabled then local c = getMyCharacter() if c then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end end)
-        else if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end end
+    local updMiniNoclip=mkMiniToggle(MBt,67,"👻",function() return "Noclip" end,function() return NoclipEnabled end,function()
+        NoclipEnabled=not NoclipEnabled
+        if NoclipEnabled then if NoclipConnection then NoclipConnection:Disconnect() end NoclipConnection=RunService.Stepped:Connect(function() if NoclipEnabled then local c=getMyCharacter() if c then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end end end end)
+        else if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection=nil end end
     end)
 
-    local updMiniESP = mkMiniToggle(MBt, 101, "👁️", function() return "ESP" end, function() return ESPEnabled end, function()
-        ESPEnabled = not ESPEnabled
-        if ESPEnabled then createESP() else removeESP() end
+    local updMiniESP=mkMiniToggle(MBt,101,"👁️",function() return "ESP" end,function() return ESPEnabled end,function()
+        ESPEnabled=not ESPEnabled if ESPEnabled then createESP() else removeESP() end
     end)
 
-    local miniUpd = nil
+    local updMiniJump=mkMiniToggle(MBt,135,"🦘",function() return "Inf Jump" end,function() return InfiniteJumpActive end,function()
+        InfiniteJumpActive=not InfiniteJumpActive
+        if InfiniteJumpActive then if InfiniteJumpConnection then InfiniteJumpConnection:Disconnect() end InfiniteJumpConnection=UserInputService.JumpRequest:Connect(function() if InfiniteJumpActive then local mc=getMyCharacter() if mc then local h=mc:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end)
+        else if InfiniteJumpConnection then InfiniteJumpConnection:Disconnect() InfiniteJumpConnection=nil end end
+    end)
+
+    local miniUpd=nil
     local function startMiniUpd()
         if miniUpd then miniUpd:Disconnect() end
-        local fc, lt = 0, tick()
-        miniUpd = RunService.Heartbeat:Connect(function()
-            fc = fc + 1
-            local now = tick()
-            if now - lt >= 1 then
-                local fps = math.floor(fc/(now-lt))
-                miniFPS.Text = fps.." fps"
-                miniFPS.TextColor3 = fps >= 50 and Color3.fromRGB(80,220,120) or fps >= 30 and Color3.fromRGB(255,220,80) or Color3.fromRGB(255,80,80)
-                fc = 0 lt = now
-                updMP() updMiniNoclip() updMiniESP()
-                pcall(function() local md = LocalPlayer:FindFirstChild("MAIN_DATA") if md then local g = md:FindFirstChild("Gems") if g then miniGem.Text = "💎 Gems: "..tostring(g.Value) end end end)
+        local fc,lt=0,tick()
+        miniUpd=RunService.Heartbeat:Connect(function()
+            fc=fc+1 local now=tick()
+            if now-lt>=1 then
+                local fps=math.floor(fc/(now-lt)) miniFPS.Text=fps.." fps"
+                miniFPS.TextColor3=fps>=50 and Color3.fromRGB(80,220,120) or fps>=30 and Color3.fromRGB(255,220,80) or Color3.fromRGB(255,80,80)
+                fc=0 lt=now updMP() updMiniNoclip() updMiniESP() updMiniJump()
+                pcall(function() local md=LocalPlayer:FindFirstChild("MAIN_DATA") if md then local g=md:FindFirstChild("Gems") if g then miniGem.Text="💎 Gems: "..tostring(g.Value) end end end)
             end
         end)
     end
-    local function stopMiniUpd() if miniUpd then miniUpd:Disconnect() miniUpd = nil end end
+    local function stopMiniUpd() if miniUpd then miniUpd:Disconnect() miniUpd=nil end end
 
-    local svP, svS
-    local function minGui() IsMinimized = true svP = MC.Position svS = MC.Size
-        TweenService:Create(MC, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size=UDim2.new(0,0,0,0), Position=UDim2.new(MC.Position.X.Scale,MC.Position.X.Offset+310,MC.Position.Y.Scale,MC.Position.Y.Offset+255)}):Play()
-        task.delay(0.3, function() MC.Visible = false MBt.Visible = true MBt.Size = UDim2.new(0,0,0,0) MBt.BackgroundTransparency = 1
-            TweenService:Create(MBt, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size=UDim2.new(0,220,0,150), BackgroundTransparency=0}):Play()
-            task.delay(0.4, function() updMP() updMiniNoclip() updMiniESP() startMiniUpd() end) end)
+    local svP,svS
+    local function minGui() IsMinimized=true svP=MC.Position svS=MC.Size
+        TweenService:Create(MC,TweenInfo.new(0.3,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0),Position=UDim2.new(MC.Position.X.Scale,MC.Position.X.Offset+310,MC.Position.Y.Scale,MC.Position.Y.Offset+255)}):Play()
+        task.delay(0.3,function() MC.Visible=false MBt.Visible=true MBt.Size=UDim2.new(0,0,0,0) MBt.BackgroundTransparency=1
+            TweenService:Create(MBt,TweenInfo.new(0.35,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,220,0,170),BackgroundTransparency=0}):Play()
+            task.delay(0.4,function() updMP() updMiniNoclip() updMiniESP() updMiniJump() startMiniUpd() end) end)
     end
-    local function maxGui() IsMinimized = false stopMiniUpd()
-        TweenService:Create(MBt, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {Size=UDim2.new(0,0,0,0), BackgroundTransparency=1}):Play()
-        task.delay(0.2, function() MBt.Visible = false MC.Visible = true MC.Position = svP or UDim2.new(0.5,-310,0.5,-255) MC.Size = UDim2.new(0,0,0,0)
-            TweenService:Create(MC, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size=svS or UDim2.new(0,620,0,510)}):Play()
-            task.delay(0.5, function() if CurrentTransparency > 0 then applyTransparency(CurrentTransparency) end end) end)
+    local function maxGui() IsMinimized=false stopMiniUpd()
+        TweenService:Create(MBt,TweenInfo.new(0.2,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0),BackgroundTransparency=1}):Play()
+        task.delay(0.2,function() MBt.Visible=false MC.Visible=true MC.Position=svP or UDim2.new(0.5,-310,0.5,-255) MC.Size=UDim2.new(0,0,0,0)
+            TweenService:Create(MC,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=svS or UDim2.new(0,620,0,510)}):Play()
+            task.delay(0.5,function() if CurrentTransparency>0 then applyTransparency(CurrentTransparency) end end) end)
     end
     miniExp.MouseButton1Click:Connect(maxGui)
 
-    UserInputService.InputBegan:Connect(function(input, processed)
+    UserInputService.InputBegan:Connect(function(input,processed)
         if processed then return end
-        if input.KeyCode == ToggleKeyCode then
-            if IsMinimized then maxGui() else minGui() end
-        end
+        if input.KeyCode==ToggleKeyCode then if IsMinimized then maxGui() else minGui() end
+        elseif input.KeyCode==TPToPlayerKeyCode and IsMinimized then tpToMiniPlayer() end
     end)
 
-    MC.Size = UDim2.new(0,0,0,0) MC.Position = UDim2.new(0.5,0,0.5,0)
-    tween(MC, {Size=UDim2.new(0,620,0,510), Position=UDim2.new(0.5,-310,0.5,-255)}, 0.5)
-    task.delay(0.6, function() if CurrentTransparency > 0 then applyTransparency(CurrentTransparency) end end)
+    MC.Size=UDim2.new(0,0,0,0) MC.Position=UDim2.new(0.5,0,0.5,0)
+    tween(MC,{Size=UDim2.new(0,620,0,510),Position=UDim2.new(0.5,-310,0.5,-255)},0.5)
+    task.delay(0.6,function() if CurrentTransparency>0 then applyTransparency(CurrentTransparency) end end)
 
-    local TB = Instance.new("Frame") TB.Parent = MC TB.BackgroundColor3 = CurrentTheme.titleBar TB.Size = UDim2.new(1,0,0,40) TB.BorderSizePixel = 0 makeCorner(TB, 12) registerThemed("titleBar", TB)
-    local TBF = Instance.new("Frame") TBF.Parent = TB TBF.BackgroundColor3 = CurrentTheme.titleBar TBF.Position = UDim2.new(0,0,1,-12) TBF.Size = UDim2.new(1,0,0,12) TBF.BorderSizePixel = 0 registerThemed("titleBar", TBF)
-    local ALn = Instance.new("Frame") ALn.Parent = MC ALn.BackgroundColor3 = CurrentTheme.accent ALn.Position = UDim2.new(0,0,0,40) ALn.Size = UDim2.new(1,0,0,2) ALn.BorderSizePixel = 0 registerThemed("accent", ALn, "BackgroundColor3")
-    local TT = Instance.new("TextLabel") TT.Parent = TB TT.BackgroundTransparency = 1 TT.Position = UDim2.new(0,16,0,0) TT.Size = UDim2.new(0,350,1,0) TT.Font = Enum.Font.GothamBold TT.Text = "⚔️  Supernova Hub  ·  SEA "..DetectedSea TT.TextColor3 = CurrentTheme.text TT.TextSize = 13 TT.TextXAlignment = Enum.TextXAlignment.Left registerThemed("text", TT, "TextColor3")
+    local TB=Instance.new("Frame") TB.Parent=MC TB.BackgroundColor3=CurrentTheme.titleBar TB.Size=UDim2.new(1,0,0,40) TB.BorderSizePixel=0 makeCorner(TB,12) registerThemed("titleBar",TB)
+    local TBF=Instance.new("Frame") TBF.Parent=TB TBF.BackgroundColor3=CurrentTheme.titleBar TBF.Position=UDim2.new(0,0,1,-12) TBF.Size=UDim2.new(1,0,0,12) TBF.BorderSizePixel=0 registerThemed("titleBar",TBF)
+    local ALn=Instance.new("Frame") ALn.Parent=MC ALn.BackgroundColor3=CurrentTheme.accent ALn.Position=UDim2.new(0,0,0,40) ALn.Size=UDim2.new(1,0,0,2) ALn.BorderSizePixel=0 registerThemed("accent",ALn,"BackgroundColor3")
+    local TT=Instance.new("TextLabel") TT.Parent=TB TT.BackgroundTransparency=1 TT.Position=UDim2.new(0,16,0,0) TT.Size=UDim2.new(0,350,1,0) TT.Font=Enum.Font.GothamBold TT.Text="⚔️  Supernova Hub  ·  SEA "..DetectedSea TT.TextColor3=CurrentTheme.text TT.TextSize=13 TT.TextXAlignment=Enum.TextXAlignment.Left registerThemed("text",TT,"TextColor3")
 
-    local CB = Instance.new("TextButton") CB.Parent = TB CB.BackgroundColor3 = Color3.fromRGB(220,55,55) CB.Position = UDim2.new(1,-34,0.5,-11) CB.Size = UDim2.new(0,22,0,22) CB.Font = Enum.Font.GothamBold CB.Text = "✖" CB.TextColor3 = Color3.fromRGB(255,255,255) CB.TextSize = 11 makeCorner(CB, 6) hoverEffect(CB, Color3.fromRGB(220,55,55), Color3.fromRGB(255,70,70)) CB.MouseButton1Click:Connect(destroyAll)
-    local MnB = Instance.new("TextButton") MnB.Parent = TB MnB.BackgroundColor3 = Color3.fromRGB(55,55,68) MnB.Position = UDim2.new(1,-90,0.5,-11) MnB.Size = UDim2.new(0,22,0,22) MnB.Font = Enum.Font.GothamBold MnB.Text = "−" MnB.TextColor3 = Color3.fromRGB(200,200,210) MnB.TextSize = 15 makeCorner(MnB, 6) hoverEffect(MnB, Color3.fromRGB(55,55,68), Color3.fromRGB(75,75,92)) MnB.MouseButton1Click:Connect(minGui)
-    local SBt = Instance.new("TextButton") SBt.Parent = TB SBt.BackgroundColor3 = Color3.fromRGB(55,55,68) SBt.Position = UDim2.new(1,-62,0.5,-11) SBt.Size = UDim2.new(0,22,0,22) SBt.Font = Enum.Font.GothamBold SBt.Text = "⚙" SBt.TextColor3 = Color3.fromRGB(200,200,210) SBt.TextSize = 12 makeCorner(SBt, 6) hoverEffect(SBt, Color3.fromRGB(55,55,68), Color3.fromRGB(75,75,92))
+    local CB=Instance.new("TextButton") CB.Parent=TB CB.BackgroundColor3=Color3.fromRGB(220,55,55) CB.Position=UDim2.new(1,-34,0.5,-11) CB.Size=UDim2.new(0,22,0,22) CB.Font=Enum.Font.GothamBold CB.Text="✖" CB.TextColor3=Color3.fromRGB(255,255,255) CB.TextSize=11 makeCorner(CB,6) hoverEffect(CB,Color3.fromRGB(220,55,55),Color3.fromRGB(255,70,70)) CB.MouseButton1Click:Connect(destroyAll)
+    local MnB=Instance.new("TextButton") MnB.Parent=TB MnB.BackgroundColor3=Color3.fromRGB(55,55,68) MnB.Position=UDim2.new(1,-90,0.5,-11) MnB.Size=UDim2.new(0,22,0,22) MnB.Font=Enum.Font.GothamBold MnB.Text="−" MnB.TextColor3=Color3.fromRGB(200,200,210) MnB.TextSize=15 makeCorner(MnB,6) hoverEffect(MnB,Color3.fromRGB(55,55,68),Color3.fromRGB(75,75,92)) MnB.MouseButton1Click:Connect(minGui)
+    local SBt=Instance.new("TextButton") SBt.Parent=TB SBt.BackgroundColor3=Color3.fromRGB(55,55,68) SBt.Position=UDim2.new(1,-62,0.5,-11) SBt.Size=UDim2.new(0,22,0,22) SBt.Font=Enum.Font.GothamBold SBt.Text="⚙" SBt.TextColor3=Color3.fromRGB(200,200,210) SBt.TextSize=12 makeCorner(SBt,6) hoverEffect(SBt,Color3.fromRGB(55,55,68),Color3.fromRGB(75,75,92))
 
-    local SDr = Instance.new("Frame") SDr.Parent = MC SDr.BackgroundColor3 = CurrentTheme.sidebar SDr.Position = UDim2.new(0,0,0,42) SDr.Size = UDim2.new(0,130,1,-42) SDr.BorderSizePixel = 0 registerThemed("sidebar", SDr)
-    local SDL = Instance.new("Frame") SDL.Parent = SDr SDL.BackgroundColor3 = CurrentTheme.separator SDL.Position = UDim2.new(1,0,0,0) SDL.Size = UDim2.new(0,1,1,0) SDL.BorderSizePixel = 0 registerThemed("separator", SDL)
-    local CA = Instance.new("Frame") CA.Parent = MC CA.BackgroundTransparency = 1 CA.Position = UDim2.new(0,136,0,48) CA.Size = UDim2.new(1,-144,1,-56)
+    local SDr=Instance.new("Frame") SDr.Parent=MC SDr.BackgroundColor3=CurrentTheme.sidebar SDr.Position=UDim2.new(0,0,0,42) SDr.Size=UDim2.new(0,130,1,-42) SDr.BorderSizePixel=0 registerThemed("sidebar",SDr)
+    local SDL=Instance.new("Frame") SDL.Parent=SDr SDL.BackgroundColor3=CurrentTheme.separator SDL.Position=UDim2.new(1,0,0,0) SDL.Size=UDim2.new(0,1,1,0) SDL.BorderSizePixel=0 registerThemed("separator",SDL)
+    local CA=Instance.new("Frame") CA.Parent=MC CA.BackgroundTransparency=1 CA.Position=UDim2.new(0,136,0,48) CA.Size=UDim2.new(1,-144,1,-56)
 
     local G1,G2,G3,G4,G5,G6
-    local sB = {}
-    local cP = "Home"
+    local sB={}
+    local cP="Home"
     local function clr() if G1 then G1:Destroy() G1=nil end if G2 then G2:Destroy() G2=nil end if G3 then G3:Destroy() G3=nil end if G4 then G4:Destroy() G4=nil end if G5 then G5:Destroy() G5=nil end if G6 then G6:Destroy() G6=nil end end
 
-    local function mkTP(p,n,x,y,z,lo,ic)
-        ic = ic or "📍"
-        local b = Instance.new("TextButton") b.Parent = p b.BackgroundColor3 = CurrentTheme.card b.Size = UDim2.new(1,-6,0,36) b.Font = Enum.Font.GothamSemibold b.Text = "  "..ic.."  "..n b.TextColor3 = CurrentTheme.textDim b.TextSize = 11 b.TextXAlignment = Enum.TextXAlignment.Left b.LayoutOrder = lo or 0 makeCorner(b, 8) registerThemed("card", b) registerThemed("textDim", b, "TextColor3")
-        local ot = b.Text
-        b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end)
-        b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-        b.MouseButton1Click:Connect(function() local ok = teleportTo(x,y,z) b.Text = ok and "  ✅" or "  ❌" b.TextColor3 = ok and Color3.fromRGB(80,220,120) or Color3.fromRGB(255,80,80) task.wait(0.8) b.Text = ot b.TextColor3 = CurrentTheme.textDim end)
-    end
-    local function mkSec(p,t,lo) local l = Instance.new("TextLabel") l.Parent = p l.BackgroundTransparency = 1 l.Size = UDim2.new(1,-6,0,28) l.Font = Enum.Font.GothamBold l.Text = t l.TextColor3 = CurrentTheme.accent l.TextSize = 11 l.TextXAlignment = Enum.TextXAlignment.Left l.LayoutOrder = lo or 0 registerThemed("accent", l, "TextColor3") end
-    local function mkScroll(p)
-        local sf = Instance.new("ScrollingFrame") sf.Parent = p sf.BackgroundColor3 = CurrentTheme.content sf.Size = UDim2.new(1,0,1,0) sf.BorderSizePixel = 0 sf.CanvasSize = UDim2.new(0,0,0,0) sf.AutomaticCanvasSize = Enum.AutomaticSize.Y sf.ScrollBarThickness = 3 sf.ScrollBarImageColor3 = CurrentTheme.stroke makeCorner(sf, 10) makeStroke(sf, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("content", sf)
-        local ll = Instance.new("UIListLayout") ll.Parent = sf ll.SortOrder = Enum.SortOrder.LayoutOrder ll.Padding = UDim.new(0,6)
-        local pd = Instance.new("UIPadding") pd.Parent = sf pd.PaddingTop = UDim.new(0,12) pd.PaddingLeft = UDim.new(0,12) pd.PaddingRight = UDim.new(0,12) pd.PaddingBottom = UDim.new(0,12)
-        return sf
+    local function mkTP(p,n,x,y,z,lo,ic) ic=ic or "📍" local b=Instance.new("TextButton") b.Parent=p b.BackgroundColor3=CurrentTheme.card b.Size=UDim2.new(1,-6,0,36) b.Font=Enum.Font.GothamSemibold b.Text="  "..ic.."  "..n b.TextColor3=CurrentTheme.textDim b.TextSize=11 b.TextXAlignment=Enum.TextXAlignment.Left b.LayoutOrder=lo or 0 makeCorner(b,8) registerThemed("card",b) registerThemed("textDim",b,"TextColor3") local ot=b.Text b.MouseEnter:Connect(function() tween(b,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) b.MouseLeave:Connect(function() tween(b,{BackgroundColor3=CurrentTheme.card},0.15) end) b.MouseButton1Click:Connect(function() local ok=teleportTo(x,y,z) b.Text=ok and "  ✅" or "  ❌" b.TextColor3=ok and Color3.fromRGB(80,220,120) or Color3.fromRGB(255,80,80) task.wait(0.8) b.Text=ot b.TextColor3=CurrentTheme.textDim end) end
+    local function mkSec(p,t,lo) local l=Instance.new("TextLabel") l.Parent=p l.BackgroundTransparency=1 l.Size=UDim2.new(1,-6,0,28) l.Font=Enum.Font.GothamBold l.Text=t l.TextColor3=CurrentTheme.accent l.TextSize=11 l.TextXAlignment=Enum.TextXAlignment.Left l.LayoutOrder=lo or 0 registerThemed("accent",l,"TextColor3") end
+    local function mkScroll(p) local sf=Instance.new("ScrollingFrame") sf.Parent=p sf.BackgroundColor3=CurrentTheme.content sf.Size=UDim2.new(1,0,1,0) sf.BorderSizePixel=0 sf.CanvasSize=UDim2.new(0,0,0,0) sf.AutomaticCanvasSize=Enum.AutomaticSize.Y sf.ScrollBarThickness=3 sf.ScrollBarImageColor3=CurrentTheme.stroke makeCorner(sf,10) makeStroke(sf,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("content",sf) local ll=Instance.new("UIListLayout") ll.Parent=sf ll.SortOrder=Enum.SortOrder.LayoutOrder ll.Padding=UDim.new(0,6) local pd=Instance.new("UIPadding") pd.Parent=sf pd.PaddingTop=UDim.new(0,12) pd.PaddingLeft=UDim.new(0,12) pd.PaddingRight=UDim.new(0,12) pd.PaddingBottom=UDim.new(0,12) return sf end
+
+    local function bG1() clr() cP="Home" uSH("Home") G1=Instance.new("Frame") G1.Parent=CA G1.BackgroundTransparency=1 G1.Size=UDim2.new(1,0,1,0) local sf=mkScroll(G1)
+        local ic=Instance.new("TextLabel") ic.Parent=sf ic.BackgroundTransparency=1 ic.Size=UDim2.new(1,-6,0,50) ic.Font=Enum.Font.GothamBold ic.Text="⚔️🍎" ic.TextColor3=Color3.fromRGB(255,255,255) ic.TextSize=36 ic.LayoutOrder=0
+        local tt=Instance.new("TextLabel") tt.Parent=sf tt.BackgroundTransparency=1 tt.Size=UDim2.new(1,-6,0,30) tt.Font=Enum.Font.GothamBold tt.Text="Supernova Hub" tt.TextColor3=CurrentTheme.text tt.TextSize=22 tt.LayoutOrder=1 registerThemed("text",tt,"TextColor3")
+        local sb=Instance.new("TextLabel") sb.Parent=sf sb.BackgroundColor3=CurrentTheme.card sb.Size=UDim2.new(1,-6,0,30) sb.Font=Enum.Font.GothamBold sb.Text="  🌊 Sea "..DetectedSea sb.TextColor3=CurrentTheme.accent sb.TextSize=12 sb.TextXAlignment=Enum.TextXAlignment.Left sb.LayoutOrder=2 makeCorner(sb,8) registerThemed("card",sb) registerThemed("accent",sb,"TextColor3")
+        local ds=Instance.new("TextLabel") ds.Parent=sf ds.BackgroundTransparency=1 ds.Size=UDim2.new(1,-6,0,200) ds.Font=Enum.Font.Gotham ds.Text="Bienvenue !\n\n🔀 Teleport · TP joueurs + Zones\n⌨️ Auto · Ultimate Farm + Keybind\n🔧 Misc · Noclip, Soru, Anti-Stun, ESP, Inf Jump\n📊 Stats · Gems, Titres, Boss, Slots, Fruits\n⚙️ Settings · Thèmes, Webhook, Keybinds\n\n− = Mini Panel PVP\n["..getKeyName(ToggleKeyCode).."] = Toggle\n["..getKeyName(TPToPlayerKeyCode).."] = TP joueur (mini)" ds.TextColor3=CurrentTheme.textDim ds.TextSize=11 ds.TextWrapped=true ds.TextYAlignment=Enum.TextYAlignment.Top ds.LayoutOrder=3 registerThemed("textDim",ds,"TextColor3")
     end
 
-    local function bG1()
-        clr() cP = "Home" uSH("Home")
-        G1 = Instance.new("Frame") G1.Parent = CA G1.BackgroundTransparency = 1 G1.Size = UDim2.new(1,0,1,0)
-        local sf = mkScroll(G1)
-        local ic = Instance.new("TextLabel") ic.Parent = sf ic.BackgroundTransparency = 1 ic.Size = UDim2.new(1,-6,0,50) ic.Font = Enum.Font.GothamBold ic.Text = "⚔️🍎" ic.TextColor3 = Color3.fromRGB(255,255,255) ic.TextSize = 36 ic.LayoutOrder = 0
-        local tt = Instance.new("TextLabel") tt.Parent = sf tt.BackgroundTransparency = 1 tt.Size = UDim2.new(1,-6,0,30) tt.Font = Enum.Font.GothamBold tt.Text = "Supernova Hub" tt.TextColor3 = CurrentTheme.text tt.TextSize = 22 tt.LayoutOrder = 1 registerThemed("text", tt, "TextColor3")
-        local sn = {[1]="Sea 1",[2]="Sea 2",[3]="Sea 3"}
-        local sb = Instance.new("TextLabel") sb.Parent = sf sb.BackgroundColor3 = CurrentTheme.card sb.Size = UDim2.new(1,-6,0,30) sb.Font = Enum.Font.GothamBold sb.Text = "  🌊 "..sn[DetectedSea] sb.TextColor3 = CurrentTheme.accent sb.TextSize = 12 sb.TextXAlignment = Enum.TextXAlignment.Left sb.LayoutOrder = 2 makeCorner(sb, 8) registerThemed("card", sb) registerThemed("accent", sb, "TextColor3")
-        local ds = Instance.new("TextLabel") ds.Parent = sf ds.BackgroundTransparency = 1 ds.Size = UDim2.new(1,-6,0,180) ds.Font = Enum.Font.Gotham ds.Text = "Bienvenue !\n\n🔀 Teleport · TP joueurs + Zones\n⌨️ Auto · Ultimate Farm + Keybind\n🔧 Misc · Noclip, Soru, Anti-Stun, ESP\n📊 Stats · Gems, Titres, Boss\n⚙️ Settings · Thèmes, Webhook, Keybind\n\n− = Mini Panel PVP\n["..getKeyName(ToggleKeyCode).."] = Toggle" ds.TextColor3 = CurrentTheme.textDim ds.TextSize = 11 ds.TextWrapped = true ds.TextYAlignment = Enum.TextYAlignment.Top ds.LayoutOrder = 3 registerThemed("textDim", ds, "TextColor3")
-    end
-
-    local function bG2()
-        clr() cP = "Teleport" uSH("Teleport")
-        G2 = Instance.new("Frame") G2.Parent = CA G2.BackgroundTransparency = 1 G2.Size = UDim2.new(1,0,1,0)
-        local sf = mkScroll(G2)
-        local tps = Instance.new("Frame") tps.Parent = sf tps.BackgroundColor3 = CurrentTheme.card tps.Size = UDim2.new(1,-6,0,180) tps.LayoutOrder = 1 makeCorner(tps, 10) registerThemed("card", tps)
-        local tpt = Instance.new("TextLabel") tpt.Parent = tps tpt.BackgroundTransparency = 1 tpt.Position = UDim2.new(0,12,0,8) tpt.Size = UDim2.new(1,-24,0,20) tpt.Font = Enum.Font.GothamBold tpt.Text = "👥 Joueurs" tpt.TextColor3 = CurrentTheme.textDim tpt.TextSize = 11 tpt.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", tpt, "TextColor3")
-        local pl = Instance.new("ScrollingFrame") pl.Parent = tps pl.BackgroundColor3 = CurrentTheme.cardInner pl.Position = UDim2.new(0,8,0,32) pl.Size = UDim2.new(1,-16,1,-40) pl.CanvasSize = UDim2.new(0,0,0,0) pl.ScrollBarThickness = 2 pl.AutomaticCanvasSize = Enum.AutomaticSize.Y pl.BorderSizePixel = 0 makeCorner(pl, 6) registerThemed("cardInner", pl)
-        Instance.new("UIListLayout", pl).SortOrder = Enum.SortOrder.LayoutOrder
-        local plp = Instance.new("UIPadding") plp.Parent = pl plp.PaddingTop = UDim.new(0,4) plp.PaddingLeft = UDim.new(0,4) plp.PaddingRight = UDim.new(0,4)
-        local function cpb(player) if player == LocalPlayer or pl:FindFirstChild("P_"..player.Name) then return end
-            local b = Instance.new("TextButton") b.Name = "P_"..player.Name b.Parent = pl b.BackgroundColor3 = CurrentTheme.card b.Size = UDim2.new(1,-6,0,28) b.Font = Enum.Font.GothamSemibold b.Text = "  🔹 "..player.DisplayName b.TextColor3 = CurrentTheme.textDim b.TextSize = 10 b.TextXAlignment = Enum.TextXAlignment.Left makeCorner(b, 6) registerThemed("card", b) registerThemed("textDim", b, "TextColor3")
-            local ot = b.Text
-            b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-            b.MouseButton1Click:Connect(function() local tc local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then tc = pf:FindFirstChild(player.Name) end end if not tc then tc = player.Character end local mc = getMyCharacter()
-                if tc and tc:FindFirstChild("HumanoidRootPart") and mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame = tc.HumanoidRootPart.CFrame*CFrame.new(0,0,3) b.Text = "  ✅" b.TextColor3 = Color3.fromRGB(80,220,120) else b.Text = "  ❌" b.TextColor3 = Color3.fromRGB(255,80,80) end task.wait(0.8) b.Text = ot b.TextColor3 = CurrentTheme.textDim end)
-        end
-        for _, p in ipairs(Players:GetPlayers()) do cpb(p) end
-        local ac = Players.PlayerAdded:Connect(function(p) task.wait(1) if pl and pl.Parent then cpb(p) end end)
-        local rc = Players.PlayerRemoving:Connect(function(p) if pl and pl.Parent then local b = pl:FindFirstChild("P_"..p.Name) if b then b:Destroy() end end end)
+    local function bG2() clr() cP="Teleport" uSH("Teleport") G2=Instance.new("Frame") G2.Parent=CA G2.BackgroundTransparency=1 G2.Size=UDim2.new(1,0,1,0) local sf=mkScroll(G2)
+        local tps=Instance.new("Frame") tps.Parent=sf tps.BackgroundColor3=CurrentTheme.card tps.Size=UDim2.new(1,-6,0,180) tps.LayoutOrder=1 makeCorner(tps,10) registerThemed("card",tps)
+        local tpt=Instance.new("TextLabel") tpt.Parent=tps tpt.BackgroundTransparency=1 tpt.Position=UDim2.new(0,12,0,8) tpt.Size=UDim2.new(1,-24,0,20) tpt.Font=Enum.Font.GothamBold tpt.Text="👥 Joueurs" tpt.TextColor3=CurrentTheme.textDim tpt.TextSize=11 tpt.TextXAlignment=Enum.TextXAlignment.Left registerThemed("textDim",tpt,"TextColor3")
+        local pl=Instance.new("ScrollingFrame") pl.Parent=tps pl.BackgroundColor3=CurrentTheme.cardInner pl.Position=UDim2.new(0,8,0,32) pl.Size=UDim2.new(1,-16,1,-40) pl.CanvasSize=UDim2.new(0,0,0,0) pl.ScrollBarThickness=2 pl.AutomaticCanvasSize=Enum.AutomaticSize.Y pl.BorderSizePixel=0 makeCorner(pl,6) registerThemed("cardInner",pl)
+        Instance.new("UIListLayout",pl).SortOrder=Enum.SortOrder.LayoutOrder
+        local plp=Instance.new("UIPadding") plp.Parent=pl plp.PaddingTop=UDim.new(0,4) plp.PaddingLeft=UDim.new(0,4) plp.PaddingRight=UDim.new(0,4)
+        local function cpb(player) if player==LocalPlayer or pl:FindFirstChild("P_"..player.Name) then return end local b=Instance.new("TextButton") b.Name="P_"..player.Name b.Parent=pl b.BackgroundColor3=CurrentTheme.card b.Size=UDim2.new(1,-6,0,28) b.Font=Enum.Font.GothamSemibold b.Text="  🔹 "..player.DisplayName b.TextColor3=CurrentTheme.textDim b.TextSize=10 b.TextXAlignment=Enum.TextXAlignment.Left makeCorner(b,6) registerThemed("card",b) registerThemed("textDim",b,"TextColor3") local ot=b.Text b.MouseEnter:Connect(function() tween(b,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) b.MouseLeave:Connect(function() tween(b,{BackgroundColor3=CurrentTheme.card},0.15) end) b.MouseButton1Click:Connect(function() local tc local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then tc=pf:FindFirstChild(player.Name) end end if not tc then tc=player.Character end local mc=getMyCharacter() if tc and tc:FindFirstChild("HumanoidRootPart") and mc and mc:FindFirstChild("HumanoidRootPart") then mc.HumanoidRootPart.CFrame=tc.HumanoidRootPart.CFrame*CFrame.new(0,0,3) b.Text="  ✅" b.TextColor3=Color3.fromRGB(80,220,120) else b.Text="  ❌" b.TextColor3=Color3.fromRGB(255,80,80) end task.wait(0.8) b.Text=ot b.TextColor3=CurrentTheme.textDim end) end
+        for _,p in ipairs(Players:GetPlayers()) do cpb(p) end
+        local ac=Players.PlayerAdded:Connect(function(p) task.wait(1) if pl and pl.Parent then cpb(p) end end)
+        local rc=Players.PlayerRemoving:Connect(function(p) if pl and pl.Parent then local b=pl:FindFirstChild("P_"..p.Name) if b then b:Destroy() end end end)
         G2.AncestryChanged:Connect(function() if not G2.Parent then ac:Disconnect() rc:Disconnect() end end)
-        local csd = DetectedSea == 1 and S1D or DetectedSea == 2 and S2D or S3D
-        local o = 2
-        mkSec(sf, "━━ FARM ━━", o) o=o+1
-        for _,f in ipairs(csd.farms) do mkTP(sf,f.n,f.x,f.y,f.z,o,"🌾") o=o+1 end
-        mkSec(sf, "━━ BOSS ━━", o) o=o+1
-        for _,b in ipairs(csd.bosses) do mkTP(sf,b.n,b.x,b.y,b.z,o,"👹") o=o+1 end
-        mkSec(sf, "━━ ZONES ━━", o) o=o+1
-        for _,z in ipairs(csd.zones) do mkTP(sf,z.n,z.x,z.y,z.z,o,z.i or "📍") o=o+1 end
-        if csd.extra then local ef = Instance.new("Frame") ef.Parent = sf ef.BackgroundColor3 = Color3.fromRGB(28,28,18) ef.Size = UDim2.new(1,-6,0,60) ef.LayoutOrder = o makeCorner(ef, 8)
-            local el = Instance.new("TextLabel") el.Parent = ef el.BackgroundTransparency = 1 el.Position = UDim2.new(0,8,0,6) el.Size = UDim2.new(1,-16,1,-12) el.Font = Enum.Font.Gotham el.Text = csd.extra el.TextColor3 = Color3.fromRGB(200,180,100) el.TextSize = 9 el.TextWrapped = true el.TextYAlignment = Enum.TextYAlignment.Top end
+        local csd=DetectedSea==1 and S1D or DetectedSea==2 and S2D or S3D local o=2
+        mkSec(sf,"━━ FARM ━━",o) o=o+1 for _,f in ipairs(csd.farms) do mkTP(sf,f.n,f.x,f.y,f.z,o,"🌾") o=o+1 end
+        mkSec(sf,"━━ BOSS ━━",o) o=o+1 for _,b in ipairs(csd.bosses) do mkTP(sf,b.n,b.x,b.y,b.z,o,"👹") o=o+1 end
+        mkSec(sf,"━━ ZONES ━━",o) o=o+1 for _,z in ipairs(csd.zones) do mkTP(sf,z.n,z.x,z.y,z.z,o,z.i or "📍") o=o+1 end
+        if csd.extra then local ef=Instance.new("Frame") ef.Parent=sf ef.BackgroundColor3=Color3.fromRGB(28,28,18) ef.Size=UDim2.new(1,-6,0,60) ef.LayoutOrder=o makeCorner(ef,8) local el=Instance.new("TextLabel") el.Parent=ef el.BackgroundTransparency=1 el.Position=UDim2.new(0,8,0,6) el.Size=UDim2.new(1,-16,1,-12) el.Font=Enum.Font.Gotham el.Text=csd.extra el.TextColor3=Color3.fromRGB(200,180,100) el.TextSize=9 el.TextWrapped=true el.TextYAlignment=Enum.TextYAlignment.Top end
     end
 
-    local function bG3()
-        clr() cP = "Auto" uSH("Auto")
-        G3 = Instance.new("Frame") G3.Parent = CA G3.BackgroundTransparency = 1 G3.Size = UDim2.new(1,0,1,0)
-        local sf = mkScroll(G3)
-        mkSec(sf, "🔥 ULTIMATE FARM", 0)
-        local ufBtn = Instance.new("TextButton") ufBtn.Parent = sf ufBtn.BackgroundColor3 = CurrentTheme.card ufBtn.Size = UDim2.new(1,-6,0,44) ufBtn.Font = Enum.Font.GothamBold ufBtn.Text = "🔥 Ultimate Farm · OFF" ufBtn.TextColor3 = Color3.fromRGB(255,80,80) ufBtn.TextSize = 13 ufBtn.LayoutOrder = 1 makeCorner(ufBtn, 10) makeStroke(ufBtn, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("card", ufBtn)
-        ufBtn.MouseEnter:Connect(function() tween(ufBtn, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) ufBtn.MouseLeave:Connect(function() tween(ufBtn, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-        local ufLog = Instance.new("TextLabel") ufLog.Parent = sf ufLog.BackgroundColor3 = CurrentTheme.cardInner ufLog.Size = UDim2.new(1,-6,0,90) ufLog.Font = Enum.Font.Gotham ufLog.Text = "  En attente..." ufLog.TextColor3 = Color3.fromRGB(90,90,100) ufLog.TextSize = 9 ufLog.TextWrapped = true ufLog.TextYAlignment = Enum.TextYAlignment.Top ufLog.TextXAlignment = Enum.TextXAlignment.Left ufLog.LayoutOrder = 2 makeCorner(ufLog, 8) registerThemed("cardInner", ufLog)
-        ufBtn.MouseButton1Click:Connect(function()
-            UltimateFarmActive = not UltimateFarmActive
-            if UltimateFarmActive then ufBtn.Text = "🔥 Ultimate Farm · ON" ufBtn.TextColor3 = Color3.fromRGB(80,220,120)
+    local function bG3() clr() cP="Auto" uSH("Auto") G3=Instance.new("Frame") G3.Parent=CA G3.BackgroundTransparency=1 G3.Size=UDim2.new(1,0,1,0) local sf=mkScroll(G3)
+        mkSec(sf,"🔥 ULTIMATE FARM",0)
+        local ufBtn=Instance.new("TextButton") ufBtn.Parent=sf ufBtn.BackgroundColor3=CurrentTheme.card ufBtn.Size=UDim2.new(1,-6,0,44) ufBtn.Font=Enum.Font.GothamBold ufBtn.Text="🔥 Ultimate Farm · OFF" ufBtn.TextColor3=Color3.fromRGB(255,80,80) ufBtn.TextSize=13 ufBtn.LayoutOrder=1 makeCorner(ufBtn,10) makeStroke(ufBtn,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("card",ufBtn)
+        ufBtn.MouseEnter:Connect(function() tween(ufBtn,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) ufBtn.MouseLeave:Connect(function() tween(ufBtn,{BackgroundColor3=CurrentTheme.card},0.15) end)
+        local ufLog=Instance.new("TextLabel") ufLog.Parent=sf ufLog.BackgroundColor3=CurrentTheme.cardInner ufLog.Size=UDim2.new(1,-6,0,90) ufLog.Font=Enum.Font.Gotham ufLog.Text="  En attente..." ufLog.TextColor3=Color3.fromRGB(90,90,100) ufLog.TextSize=9 ufLog.TextWrapped=true ufLog.TextYAlignment=Enum.TextYAlignment.Top ufLog.TextXAlignment=Enum.TextXAlignment.Left ufLog.LayoutOrder=2 makeCorner(ufLog,8) registerThemed("cardInner",ufLog)
+        ufBtn.MouseButton1Click:Connect(function() UltimateFarmActive=not UltimateFarmActive
+            if UltimateFarmActive then ufBtn.Text="🔥 Ultimate Farm · ON" ufBtn.TextColor3=Color3.fromRGB(80,220,120)
                 task.spawn(function() while UltimateFarmActive and G3 and G3.Parent do
-                    local atks = getBackpackAttacks()
-                    local hotbarAtks = getAllAttacksFromHotbar()
-                    local allAtks = {}
-                    local seenKeys = {}
-                    for _, a in ipairs(atks) do
-                        if not seenKeys[a.key] then
-                            seenKeys[a.key] = true
-                            table.insert(allAtks, {name = a.name, key = a.key})
-                        end
-                    end
-                    for _, a in ipairs(hotbarAtks) do
-                        if not seenKeys[a.key] then
-                            seenKeys[a.key] = true
-                            table.insert(allAtks, {name = a.name, key = a.key, locked = a.locked})
-                        end
-                    end
-                    local pri = {["G"]=1,["1"]=2,["2"]=3,["3"]=4,["4"]=5,["5"]=6,["6"]=7,["E"]=8}
-                    table.sort(allAtks, function(a, b) return (pri[a.key] or 99) < (pri[b.key] or 99) end)
-
-                    if #allAtks == 0 then ufLog.Text = "  ⚠️ Aucune attaque détectée" task.wait(1) else
-                        local txt = ""
-                        for i, a in ipairs(allAtks) do
-                            local cd = isOnCooldown(a.name)
-                            local lk = a.locked or (not cd and isAttackLocked(a.key))
-                            txt = txt .. a.name .. " [" .. a.key .. "] " .. (cd and "🔴" or lk and "🔒" or "🟢") .. "\n"
-                        end
-                        ufLog.Text = txt
-                        for _, a in ipairs(allAtks) do
-                            if not UltimateFarmActive then break end
-                            local cd = isOnCooldown(a.name)
-                            local lk = a.locked or (not cd and isAttackLocked(a.key))
-                            if not cd and not lk then
-                                local kc = stringToKeyCode(a.key)
-                                if kc then simulateKeyAndClick(kc, a.key) task.wait(KeybindDelay) end
-                            end
-                        end
-                        task.wait(0.2)
+                    local atks=getBackpackAttacks() local hAtks=getAllAttacksFromHotbar() local allA={} local seen={}
+                    for _,a in ipairs(atks) do if not seen[a.key] then seen[a.key]=true table.insert(allA,{name=a.name,key=a.key}) end end
+                    for _,a in ipairs(hAtks) do if not seen[a.key] then seen[a.key]=true table.insert(allA,{name=a.name,key=a.key,locked=a.locked}) end end
+                    local pri={["G"]=1,["1"]=2,["2"]=3,["3"]=4,["4"]=5,["5"]=6,["6"]=7,["E"]=8}
+                    table.sort(allA,function(a,b) return (pri[a.key] or 99)<(pri[b.key] or 99) end)
+                    if #allA==0 then ufLog.Text="  ⚠️ Aucune attaque" task.wait(1) else
+                        local txt="" for _,a in ipairs(allA) do local cd=isOnCooldown(a.name) local lk=a.locked or (not cd and isAttackLocked(a.key)) txt=txt..a.name.." ["..a.key.."] "..(cd and "🔴" or lk and "🔒" or "🟢").."\n" end ufLog.Text=txt
+                        for _,a in ipairs(allA) do if not UltimateFarmActive then break end local cd=isOnCooldown(a.name) local lk=a.locked or (not cd and isAttackLocked(a.key)) if not cd and not lk then local kc=stringToKeyCode(a.key) if kc then simulateKeyAndClick(kc,a.key) task.wait(KeybindDelay) end end end task.wait(0.2)
                     end
                 end end)
-            else ufBtn.Text = "🔥 Ultimate Farm · OFF" ufBtn.TextColor3 = Color3.fromRGB(255,80,80) ufLog.Text = "  Inactif" end
+            else ufBtn.Text="🔥 Ultimate Farm · OFF" ufBtn.TextColor3=Color3.fromRGB(255,80,80) ufLog.Text="  Inactif" end
         end)
-
-        local s0 = Instance.new("Frame") s0.Parent = sf s0.BackgroundColor3 = CurrentTheme.separator s0.Size = UDim2.new(0.92,0,0,1) s0.BorderSizePixel = 0 s0.LayoutOrder = 3 registerThemed("separator", s0)
-        mkSec(sf, "⌨️ AUTO KEYBIND", 4)
-        local kb = Instance.new("TextButton") kb.Parent = sf kb.BackgroundColor3 = CurrentTheme.card kb.Size = UDim2.new(1,-6,0,44) kb.Font = Enum.Font.GothamBold kb.Text = "⌨️ Auto Keybind · OFF" kb.TextColor3 = Color3.fromRGB(255,80,80) kb.TextSize = 13 kb.LayoutOrder = 5 makeCorner(kb, 10) registerThemed("card", kb)
-        kb.MouseEnter:Connect(function() tween(kb, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) kb.MouseLeave:Connect(function() tween(kb, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-        local ks = {Enum.KeyCode.One,Enum.KeyCode.Two,Enum.KeyCode.Three,Enum.KeyCode.Four,Enum.KeyCode.Five,Enum.KeyCode.G}
-        local kn = {"1","2","3","4","5","G"}
-        kb.MouseButton1Click:Connect(function() AutoKeybindActive = not AutoKeybindActive
-            if AutoKeybindActive then kb.Text = "⌨️ Auto Keybind · ON" kb.TextColor3 = Color3.fromRGB(80,220,120) task.spawn(function() while AutoKeybindActive do for i,kc in ipairs(ks) do if not AutoKeybindActive then break end simulateKeyAndClick(kc,kn[i]) task.wait(KeybindDelay) end task.wait(0.3) end end)
-            else kb.Text = "⌨️ Auto Keybind · OFF" kb.TextColor3 = Color3.fromRGB(255,80,80) end end)
-
-        local s1 = Instance.new("Frame") s1.Parent = sf s1.BackgroundColor3 = CurrentTheme.separator s1.Size = UDim2.new(0.92,0,0,1) s1.BorderSizePixel = 0 s1.LayoutOrder = 6 registerThemed("separator", s1)
-        mkSec(sf, "📌 STAY", 7)
-        local sc2 = Instance.new("Frame") sc2.Parent = sf sc2.BackgroundColor3 = CurrentTheme.card sc2.Size = UDim2.new(1,-6,0,44) sc2.LayoutOrder = 8 makeCorner(sc2, 10) registerThemed("card", sc2)
-        local scb = Instance.new("TextButton") scb.Parent = sc2 scb.BackgroundColor3 = CurrentTheme.cardInner scb.Position = UDim2.new(0,10,0.5,-10) scb.Size = UDim2.new(0,20,0,20) scb.Font = Enum.Font.GothamBold scb.Text = "" scb.TextColor3 = Color3.fromRGB(80,220,120) scb.TextSize = 14 makeCorner(scb, 5) registerThemed("cardInner", scb)
-        local sl2 = Instance.new("TextLabel") sl2.Parent = sc2 sl2.BackgroundTransparency = 1 sl2.Position = UDim2.new(0,38,0,0) sl2.Size = UDim2.new(1,-48,1,0) sl2.Font = Enum.Font.GothamBold sl2.Text = "📌 Stay · OFF" sl2.TextColor3 = Color3.fromRGB(255,80,80) sl2.TextSize = 11 sl2.TextXAlignment = Enum.TextXAlignment.Left
-        scb.MouseButton1Click:Connect(function() StayPositionActive = not StayPositionActive
-            if StayPositionActive then local mc = getMyCharacter()
-                if mc and mc:FindFirstChild("HumanoidRootPart") then StayPositionCFrame = mc.HumanoidRootPart.CFrame scb.Text = "✓" sl2.Text = "📌 Stay · ON" sl2.TextColor3 = Color3.fromRGB(80,220,120)
-                    StayPositionConnection = RunService.Heartbeat:Connect(function() if StayPositionActive and StayPositionCFrame then local c = getMyCharacter() if c and c:FindFirstChild("HumanoidRootPart") then c.HumanoidRootPart.CFrame = StayPositionCFrame end end end)
-                else StayPositionActive = false end
-            else scb.Text = "" sl2.Text = "📌 Stay · OFF" sl2.TextColor3 = Color3.fromRGB(255,80,80) StayPositionCFrame = nil if StayPositionConnection then StayPositionConnection:Disconnect() StayPositionConnection = nil end end end)
-
-        local s2 = Instance.new("Frame") s2.Parent = sf s2.BackgroundColor3 = CurrentTheme.separator s2.Size = UDim2.new(0.92,0,0,1) s2.BorderSizePixel = 0 s2.LayoutOrder = 9 registerThemed("separator", s2)
-        mkSec(sf, "⚙️ TIMING", 10)
-        local pc = Instance.new("Frame") pc.Parent = sf pc.BackgroundTransparency = 1 pc.Size = UDim2.new(1,-6,0,75) pc.LayoutOrder = 11
-        local function mkTB(parent, title, x, gv, sv)
-            local bx = Instance.new("Frame") bx.Parent = parent bx.BackgroundColor3 = CurrentTheme.card bx.Position = UDim2.new(x,0,0,0) bx.Size = UDim2.new(0.48,0,0,70) makeCorner(bx, 8) registerThemed("card", bx)
-            local tl = Instance.new("TextLabel") tl.Parent = bx tl.BackgroundTransparency = 1 tl.Position = UDim2.new(0,8,0,6) tl.Size = UDim2.new(1,-16,0,14) tl.Font = Enum.Font.GothamBold tl.Text = title tl.TextColor3 = CurrentTheme.textDim tl.TextSize = 9 tl.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", tl, "TextColor3")
-            local ti = Instance.new("TextBox") ti.Parent = bx ti.BackgroundColor3 = CurrentTheme.input ti.Position = UDim2.new(0.1,0,0,28) ti.Size = UDim2.new(0.8,0,0,28) ti.Font = Enum.Font.GothamBold ti.Text = tostring(gv()) ti.TextColor3 = CurrentTheme.accent ti.TextSize = 14 ti.ClearTextOnFocus = false makeCorner(ti, 6) registerThemed("input", ti) registerThemed("accent", ti, "TextColor3")
-            ti.FocusLost:Connect(function() local v = tonumber(ti.Text) if v and v >= 0.01 and v <= 10 then sv(v) else ti.Text = tostring(gv()) end end)
-        end
-        mkTB(pc, "⏱ Délai", 0, function() return KeybindDelay end, function(v) KeybindDelay = v end)
-        mkTB(pc, "🖱️ Clic hold", 0.52, function() return KeybindHoldTime end, function(v) KeybindHoldTime = v end)
-
-        local s3 = Instance.new("Frame") s3.Parent = sf s3.BackgroundColor3 = CurrentTheme.separator s3.Size = UDim2.new(0.92,0,0,1) s3.BorderSizePixel = 0 s3.LayoutOrder = 12 registerThemed("separator", s3)
-        mkSec(sf, "🎯 CUSTOM HOLD", 13)
-        local chF = Instance.new("Frame") chF.Parent = sf chF.BackgroundTransparency = 1 chF.Size = UDim2.new(1,-6,0,46) chF.LayoutOrder = 14
-        local chL = Instance.new("UIListLayout") chL.Parent = chF chL.FillDirection = Enum.FillDirection.Horizontal chL.Padding = UDim.new(0,5) chL.VerticalAlignment = Enum.VerticalAlignment.Center
-        for idx, kName in ipairs({"1","2","3","4","5","6","E","G"}) do
-            local isA = CustomHoldTimes[kName] and CustomHoldTimes[kName] > 0
-            local kB = Instance.new("TextButton") kB.Parent = chF kB.BackgroundColor3 = isA and Color3.fromRGB(30,80,45) or Color3.fromRGB(120,30,30) kB.Size = UDim2.new(0,44,0,44) kB.Font = Enum.Font.GothamBold kB.LayoutOrder = idx kB.AutoButtonColor = false makeCorner(kB, 8)
-            local kS = makeStroke(kB, isA and Color3.fromRGB(80,220,120) or Color3.fromRGB(255,80,80), 1.5)
-            if isA then kB.Text = kName.."\n"..string.format("%.1fs",CustomHoldTimes[kName]) kB.TextColor3 = Color3.fromRGB(80,220,120) kB.TextSize = 9 else kB.Text = kName kB.TextColor3 = Color3.fromRGB(255,120,120) kB.TextSize = 13 end
-            kB.MouseButton1Click:Connect(function()
-                if CustomHoldTimes[kName] and CustomHoldTimes[kName] > 0 then CustomHoldTimes[kName] = nil kB.BackgroundColor3 = Color3.fromRGB(120,30,30) kB.Text = kName kB.TextColor3 = Color3.fromRGB(255,120,120) kB.TextSize = 13 kS.Color = Color3.fromRGB(255,80,80) saveSettings()
-                else
-                    local pop = Instance.new("Frame") pop.Parent = ScreenGui pop.BackgroundColor3 = CurrentTheme.bg pop.Position = UDim2.new(0.5,-110,0.5,-55) pop.Size = UDim2.new(0,220,0,110) pop.ZIndex = 100 pop.Active = true makeCorner(pop, 12) makeStroke(pop, CurrentTheme.accent, 2)
-                    local pI = Instance.new("TextBox") pI.Parent = pop pI.BackgroundColor3 = CurrentTheme.input pI.Position = UDim2.new(0.15,0,0,12) pI.Size = UDim2.new(0.7,0,0,28) pI.Font = Enum.Font.GothamBold pI.Text = "1.0" pI.TextColor3 = CurrentTheme.accent pI.TextSize = 14 pI.ZIndex = 101 makeCorner(pI, 6)
-                    local pOK = Instance.new("TextButton") pOK.Parent = pop pOK.BackgroundColor3 = Color3.fromRGB(30,80,45) pOK.Position = UDim2.new(0.08,0,0,55) pOK.Size = UDim2.new(0.4,0,0,26) pOK.Font = Enum.Font.GothamBold pOK.Text = "✅" pOK.TextColor3 = Color3.fromRGB(80,220,120) pOK.TextSize = 12 pOK.ZIndex = 101 makeCorner(pOK, 6)
-                    local pNo = Instance.new("TextButton") pNo.Parent = pop pNo.BackgroundColor3 = Color3.fromRGB(80,30,30) pNo.Position = UDim2.new(0.52,0,0,55) pNo.Size = UDim2.new(0.4,0,0,26) pNo.Font = Enum.Font.GothamBold pNo.Text = "❌" pNo.TextColor3 = Color3.fromRGB(255,120,120) pNo.TextSize = 12 pNo.ZIndex = 101 makeCorner(pNo, 6)
-                    pOK.MouseButton1Click:Connect(function() local v = tonumber(pI.Text) if v and v >= 0.01 then CustomHoldTimes[kName] = v kB.BackgroundColor3 = Color3.fromRGB(30,80,45) kB.Text = kName.."\n"..string.format("%.1fs",v) kB.TextColor3 = Color3.fromRGB(80,220,120) kB.TextSize = 9 kS.Color = Color3.fromRGB(80,220,120) saveSettings() end pop:Destroy() end)
-                    pNo.MouseButton1Click:Connect(function() pop:Destroy() end)
-                end
-            end)
+        local s0=Instance.new("Frame") s0.Parent=sf s0.BackgroundColor3=CurrentTheme.separator s0.Size=UDim2.new(0.92,0,0,1) s0.BorderSizePixel=0 s0.LayoutOrder=3 registerThemed("separator",s0)
+        mkSec(sf,"⌨️ AUTO KEYBIND",4)
+        local kb=Instance.new("TextButton") kb.Parent=sf kb.BackgroundColor3=CurrentTheme.card kb.Size=UDim2.new(1,-6,0,44) kb.Font=Enum.Font.GothamBold kb.Text="⌨️ Auto Keybind · OFF" kb.TextColor3=Color3.fromRGB(255,80,80) kb.TextSize=13 kb.LayoutOrder=5 makeCorner(kb,10) registerThemed("card",kb)
+        kb.MouseEnter:Connect(function() tween(kb,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) kb.MouseLeave:Connect(function() tween(kb,{BackgroundColor3=CurrentTheme.card},0.15) end)
+        local ks={Enum.KeyCode.One,Enum.KeyCode.Two,Enum.KeyCode.Three,Enum.KeyCode.Four,Enum.KeyCode.Five,Enum.KeyCode.G} local kn={"1","2","3","4","5","G"}
+        kb.MouseButton1Click:Connect(function() AutoKeybindActive=not AutoKeybindActive if AutoKeybindActive then kb.Text="⌨️ Auto Keybind · ON" kb.TextColor3=Color3.fromRGB(80,220,120) task.spawn(function() while AutoKeybindActive do for i,kc in ipairs(ks) do if not AutoKeybindActive then break end simulateKeyAndClick(kc,kn[i]) task.wait(KeybindDelay) end task.wait(0.3) end end) else kb.Text="⌨️ Auto Keybind · OFF" kb.TextColor3=Color3.fromRGB(255,80,80) end end)
+        local s1=Instance.new("Frame") s1.Parent=sf s1.BackgroundColor3=CurrentTheme.separator s1.Size=UDim2.new(0.92,0,0,1) s1.BorderSizePixel=0 s1.LayoutOrder=6 registerThemed("separator",s1)
+        mkSec(sf,"📌 STAY",7)
+        local sc2=Instance.new("Frame") sc2.Parent=sf sc2.BackgroundColor3=CurrentTheme.card sc2.Size=UDim2.new(1,-6,0,44) sc2.LayoutOrder=8 makeCorner(sc2,10) registerThemed("card",sc2)
+        local scb=Instance.new("TextButton") scb.Parent=sc2 scb.BackgroundColor3=CurrentTheme.cardInner scb.Position=UDim2.new(0,10,0.5,-10) scb.Size=UDim2.new(0,20,0,20) scb.Font=Enum.Font.GothamBold scb.Text="" scb.TextColor3=Color3.fromRGB(80,220,120) scb.TextSize=14 makeCorner(scb,5) registerThemed("cardInner",scb)
+        local sl2=Instance.new("TextLabel") sl2.Parent=sc2 sl2.BackgroundTransparency=1 sl2.Position=UDim2.new(0,38,0,0) sl2.Size=UDim2.new(1,-48,1,0) sl2.Font=Enum.Font.GothamBold sl2.Text="📌 Stay · OFF" sl2.TextColor3=Color3.fromRGB(255,80,80) sl2.TextSize=11 sl2.TextXAlignment=Enum.TextXAlignment.Left
+        scb.MouseButton1Click:Connect(function() StayPositionActive=not StayPositionActive if StayPositionActive then local mc=getMyCharacter() if mc and mc:FindFirstChild("HumanoidRootPart") then StayPositionCFrame=mc.HumanoidRootPart.CFrame scb.Text="✓" sl2.Text="📌 Stay · ON" sl2.TextColor3=Color3.fromRGB(80,220,120) StayPositionConnection=RunService.Heartbeat:Connect(function() if StayPositionActive and StayPositionCFrame then local c=getMyCharacter() if c and c:FindFirstChild("HumanoidRootPart") then c.HumanoidRootPart.CFrame=StayPositionCFrame end end end) else StayPositionActive=false end else scb.Text="" sl2.Text="📌 Stay · OFF" sl2.TextColor3=Color3.fromRGB(255,80,80) StayPositionCFrame=nil if StayPositionConnection then StayPositionConnection:Disconnect() StayPositionConnection=nil end end end)
+        local s2=Instance.new("Frame") s2.Parent=sf s2.BackgroundColor3=CurrentTheme.separator s2.Size=UDim2.new(0.92,0,0,1) s2.BorderSizePixel=0 s2.LayoutOrder=9 registerThemed("separator",s2)
+        mkSec(sf,"⚙️ TIMING",10)
+        local pc=Instance.new("Frame") pc.Parent=sf pc.BackgroundTransparency=1 pc.Size=UDim2.new(1,-6,0,75) pc.LayoutOrder=11
+        local function mkTB(parent,title,x,gv,sv) local bx=Instance.new("Frame") bx.Parent=parent bx.BackgroundColor3=CurrentTheme.card bx.Position=UDim2.new(x,0,0,0) bx.Size=UDim2.new(0.48,0,0,70) makeCorner(bx,8) registerThemed("card",bx) local tl=Instance.new("TextLabel") tl.Parent=bx tl.BackgroundTransparency=1 tl.Position=UDim2.new(0,8,0,6) tl.Size=UDim2.new(1,-16,0,14) tl.Font=Enum.Font.GothamBold tl.Text=title tl.TextColor3=CurrentTheme.textDim tl.TextSize=9 tl.TextXAlignment=Enum.TextXAlignment.Left registerThemed("textDim",tl,"TextColor3") local ti=Instance.new("TextBox") ti.Parent=bx ti.BackgroundColor3=CurrentTheme.input ti.Position=UDim2.new(0.1,0,0,28) ti.Size=UDim2.new(0.8,0,0,28) ti.Font=Enum.Font.GothamBold ti.Text=tostring(gv()) ti.TextColor3=CurrentTheme.accent ti.TextSize=14 ti.ClearTextOnFocus=false makeCorner(ti,6) registerThemed("input",ti) registerThemed("accent",ti,"TextColor3") ti.FocusLost:Connect(function() local v=tonumber(ti.Text) if v and v>=0.01 and v<=10 then sv(v) else ti.Text=tostring(gv()) end end) end
+        mkTB(pc,"⏱ Délai",0,function() return KeybindDelay end,function(v) KeybindDelay=v end)
+        mkTB(pc,"🖱️ Clic hold",0.52,function() return KeybindHoldTime end,function(v) KeybindHoldTime=v end)
+        local s3=Instance.new("Frame") s3.Parent=sf s3.BackgroundColor3=CurrentTheme.separator s3.Size=UDim2.new(0.92,0,0,1) s3.BorderSizePixel=0 s3.LayoutOrder=12 registerThemed("separator",s3)
+        mkSec(sf,"🎯 CUSTOM HOLD",13)
+        local chF=Instance.new("Frame") chF.Parent=sf chF.BackgroundTransparency=1 chF.Size=UDim2.new(1,-6,0,46) chF.LayoutOrder=14
+        local chL=Instance.new("UIListLayout") chL.Parent=chF chL.FillDirection=Enum.FillDirection.Horizontal chL.Padding=UDim.new(0,5) chL.VerticalAlignment=Enum.VerticalAlignment.Center
+        for idx,kName in ipairs({"1","2","3","4","5","6","E","G"}) do local isA=CustomHoldTimes[kName] and CustomHoldTimes[kName]>0 local kB=Instance.new("TextButton") kB.Parent=chF kB.BackgroundColor3=isA and Color3.fromRGB(30,80,45) or Color3.fromRGB(120,30,30) kB.Size=UDim2.new(0,44,0,44) kB.Font=Enum.Font.GothamBold kB.LayoutOrder=idx kB.AutoButtonColor=false makeCorner(kB,8) local kS=makeStroke(kB,isA and Color3.fromRGB(80,220,120) or Color3.fromRGB(255,80,80),1.5) if isA then kB.Text=kName.."\n"..string.format("%.1fs",CustomHoldTimes[kName]) kB.TextColor3=Color3.fromRGB(80,220,120) kB.TextSize=9 else kB.Text=kName kB.TextColor3=Color3.fromRGB(255,120,120) kB.TextSize=13 end
+            kB.MouseButton1Click:Connect(function() if CustomHoldTimes[kName] and CustomHoldTimes[kName]>0 then CustomHoldTimes[kName]=nil kB.BackgroundColor3=Color3.fromRGB(120,30,30) kB.Text=kName kB.TextColor3=Color3.fromRGB(255,120,120) kB.TextSize=13 kS.Color=Color3.fromRGB(255,80,80) saveSettings() else local pop=Instance.new("Frame") pop.Parent=ScreenGui pop.BackgroundColor3=CurrentTheme.bg pop.Position=UDim2.new(0.5,-110,0.5,-55) pop.Size=UDim2.new(0,220,0,110) pop.ZIndex=100 pop.Active=true makeCorner(pop,12) makeStroke(pop,CurrentTheme.accent,2) local pI=Instance.new("TextBox") pI.Parent=pop pI.BackgroundColor3=CurrentTheme.input pI.Position=UDim2.new(0.15,0,0,12) pI.Size=UDim2.new(0.7,0,0,28) pI.Font=Enum.Font.GothamBold pI.Text="1.0" pI.TextColor3=CurrentTheme.accent pI.TextSize=14 pI.ZIndex=101 makeCorner(pI,6) local pOK=Instance.new("TextButton") pOK.Parent=pop pOK.BackgroundColor3=Color3.fromRGB(30,80,45) pOK.Position=UDim2.new(0.08,0,0,55) pOK.Size=UDim2.new(0.4,0,0,26) pOK.Font=Enum.Font.GothamBold pOK.Text="✅" pOK.TextColor3=Color3.fromRGB(80,220,120) pOK.TextSize=12 pOK.ZIndex=101 makeCorner(pOK,6) local pNo=Instance.new("TextButton") pNo.Parent=pop pNo.BackgroundColor3=Color3.fromRGB(80,30,30) pNo.Position=UDim2.new(0.52,0,0,55) pNo.Size=UDim2.new(0.4,0,0,26) pNo.Font=Enum.Font.GothamBold pNo.Text="❌" pNo.TextColor3=Color3.fromRGB(255,120,120) pNo.TextSize=12 pNo.ZIndex=101 makeCorner(pNo,6) pOK.MouseButton1Click:Connect(function() local v=tonumber(pI.Text) if v and v>=0.01 then CustomHoldTimes[kName]=v kB.BackgroundColor3=Color3.fromRGB(30,80,45) kB.Text=kName.."\n"..string.format("%.1fs",v) kB.TextColor3=Color3.fromRGB(80,220,120) kB.TextSize=9 kS.Color=Color3.fromRGB(80,220,120) saveSettings() end pop:Destroy() end) pNo.MouseButton1Click:Connect(function() pop:Destroy() end) end end)
         end
     end
 
-    local function bG4()
-        clr() cP = "Misc" uSH("Misc")
-        G4 = Instance.new("Frame") G4.Parent = CA G4.BackgroundTransparency = 1 G4.Size = UDim2.new(1,0,1,0)
-        local sf = mkScroll(G4)
-        mkSec(sf, "🔧 MISC", 0)
-        local function mkTog(parent, icon, name, lo, gs, tog)
-            local b = Instance.new("TextButton") b.Parent = parent b.BackgroundColor3 = CurrentTheme.card b.Size = UDim2.new(1,-6,0,42) b.Font = Enum.Font.GothamBold b.TextSize = 12 b.LayoutOrder = lo makeCorner(b, 10) registerThemed("card", b)
-            b.MouseEnter:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) b.MouseLeave:Connect(function() tween(b, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-            local function upd() if gs() then b.Text = "  "..icon.."  "..name.." · ON" b.TextColor3 = Color3.fromRGB(80,220,120) else b.Text = "  "..icon.."  "..name.." · OFF" b.TextColor3 = Color3.fromRGB(255,80,80) end end upd()
-            b.MouseButton1Click:Connect(function() tog() upd() end) return upd
-        end
-        mkTog(sf,"👻","Noclip",1,function() return NoclipEnabled end,function() NoclipEnabled = not NoclipEnabled if NoclipEnabled then if NoclipConnection then NoclipConnection:Disconnect() end NoclipConnection = RunService.Stepped:Connect(function() if NoclipEnabled then local c = getMyCharacter() if c then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end end end) else if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection = nil end end end)
-        mkTog(sf,"⚡","Infinite Soru",2,function() return InfiniteSoruActive end,function() InfiniteSoruActive = not InfiniteSoruActive if InfiniteSoruActive then InfiniteSoruConnection = RunService.Heartbeat:Connect(function() if InfiniteSoruActive then local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then local mc = pf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("SoruCD",0) mc:SetAttribute("DashCD",0) end) end end end end end) else if InfiniteSoruConnection then InfiniteSoruConnection:Disconnect() InfiniteSoruConnection = nil end end end)
-        mkTog(sf,"🛡️","Anti Stun",3,function() return AntiStunActive end,function() AntiStunActive = not AntiStunActive if AntiStunActive then AntiStunConnection = RunService.Heartbeat:Connect(function() if not AntiStunActive then return end local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then local mc = pf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("Stunned",0) mc:SetAttribute("Stunned",false) mc:SetAttribute("Hitted",false) mc:SetAttribute("Stun",0) mc:SetAttribute("IsStunned",false) mc:SetAttribute("CanMove",true) mc:SetAttribute("Frozen",false) mc:SetAttribute("IsRagdolled",false) mc:SetAttribute("Ragdolled",false) end) local h = mc:FindFirstChildOfClass("Humanoid") if h then pcall(function() if h.WalkSpeed < 16 then h.WalkSpeed = 16 end if h.JumpPower < 50 then h.JumpPower = 50 end h:SetAttribute("IsRagdolled",false) h:SetAttribute("Ragdolled",false) h:SetAttribute("Stunned",false) end) end end end end end) else if AntiStunConnection then AntiStunConnection:Disconnect() AntiStunConnection = nil end end end)
-        mkTog(sf,"❤️","Anti Low HP",4,function() return AntiLowHPActive end,function() AntiLowHPActive = not AntiLowHPActive if AntiLowHPActive then AntiLowHPConnection = RunService.Heartbeat:Connect(function() if not AntiLowHPActive then return end local cf = workspace:FindFirstChild("Characters") if cf then local pf = cf:FindFirstChild("Players") if pf then local mc = pf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("LowHP",false) end) local h = mc:FindFirstChildOfClass("Humanoid") if h then pcall(function() h:SetAttribute("LowHP",false) end) end end end end end) else if AntiLowHPConnection then AntiLowHPConnection:Disconnect() AntiLowHPConnection = nil end end end)
-        mkTog(sf,"👁️","ESP Players",5,function() return ESPEnabled end,function() ESPEnabled = not ESPEnabled if ESPEnabled then createESP() else removeESP() end end)
-        local s5 = Instance.new("Frame") s5.Parent = sf s5.BackgroundColor3 = CurrentTheme.separator s5.Size = UDim2.new(0.92,0,0,1) s5.BorderSizePixel = 0 s5.LayoutOrder = 6 registerThemed("separator", s5)
-        mkSec(sf, "🔄 SERVEUR", 7)
-        local shB = Instance.new("TextButton") shB.Parent = sf shB.BackgroundColor3 = CurrentTheme.card shB.Size = UDim2.new(1,-6,0,38) shB.Font = Enum.Font.GothamBold shB.Text = "  🔄 Server Hop" shB.TextColor3 = CurrentTheme.textDim shB.TextSize = 12 shB.TextXAlignment = Enum.TextXAlignment.Left shB.LayoutOrder = 8 makeCorner(shB, 10) registerThemed("card", shB) registerThemed("textDim", shB, "TextColor3")
-        shB.MouseEnter:Connect(function() tween(shB, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) shB.MouseLeave:Connect(function() tween(shB, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-        shB.MouseButton1Click:Connect(function() shB.Text = "  🔄 ..." task.spawn(function() pcall(function() local pid = game.PlaceId local sv = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..pid.."/servers/Public?sortOrder=Asc&limit=100")) if sv and sv.data then for _,s in ipairs(sv.data) do if s.id ~= game.JobId and s.playing < s.maxPlayers then game:GetService("TeleportService"):TeleportToPlaceInstance(pid,s.id,LocalPlayer) return end end end shB.Text = "  ❌" task.wait(2) shB.Text = "  🔄 Server Hop" end) end) end)
-        local rjB = Instance.new("TextButton") rjB.Parent = sf rjB.BackgroundColor3 = CurrentTheme.card rjB.Size = UDim2.new(1,-6,0,38) rjB.Font = Enum.Font.GothamBold rjB.Text = "  🔁 Rejoin" rjB.TextColor3 = CurrentTheme.textDim rjB.TextSize = 12 rjB.TextXAlignment = Enum.TextXAlignment.Left rjB.LayoutOrder = 9 makeCorner(rjB, 10) registerThemed("card", rjB) registerThemed("textDim", rjB, "TextColor3")
-        rjB.MouseEnter:Connect(function() tween(rjB, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) rjB.MouseLeave:Connect(function() tween(rjB, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-        rjB.MouseButton1Click:Connect(function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
+    local function bG4() clr() cP="Misc" uSH("Misc") G4=Instance.new("Frame") G4.Parent=CA G4.BackgroundTransparency=1 G4.Size=UDim2.new(1,0,1,0) local sf=mkScroll(G4)
+        mkSec(sf,"🔧 MISC",0)
+        local function mkTog(parent,icon,name,lo,gs,tog) local b=Instance.new("TextButton") b.Parent=parent b.BackgroundColor3=CurrentTheme.card b.Size=UDim2.new(1,-6,0,42) b.Font=Enum.Font.GothamBold b.TextSize=12 b.LayoutOrder=lo makeCorner(b,10) registerThemed("card",b) b.MouseEnter:Connect(function() tween(b,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) b.MouseLeave:Connect(function() tween(b,{BackgroundColor3=CurrentTheme.card},0.15) end) local function upd() if gs() then b.Text="  "..icon.."  "..name.." · ON" b.TextColor3=Color3.fromRGB(80,220,120) else b.Text="  "..icon.."  "..name.." · OFF" b.TextColor3=Color3.fromRGB(255,80,80) end end upd() b.MouseButton1Click:Connect(function() tog() upd() end) return upd end
+        mkTog(sf,"👻","Noclip",1,function() return NoclipEnabled end,function() NoclipEnabled=not NoclipEnabled if NoclipEnabled then if NoclipConnection then NoclipConnection:Disconnect() end NoclipConnection=RunService.Stepped:Connect(function() if NoclipEnabled then local c=getMyCharacter() if c then for _,p in ipairs(c:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end end end end) else if NoclipConnection then NoclipConnection:Disconnect() NoclipConnection=nil end end end)
+        mkTog(sf,"⚡","Infinite Soru",2,function() return InfiniteSoruActive end,function() InfiniteSoruActive=not InfiniteSoruActive if InfiniteSoruActive then InfiniteSoruConnection=RunService.Heartbeat:Connect(function() if InfiniteSoruActive then local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then local mc=pf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("SoruCD",0) mc:SetAttribute("DashCD",0) end) end end end end end) else if InfiniteSoruConnection then InfiniteSoruConnection:Disconnect() InfiniteSoruConnection=nil end end end)
+        mkTog(sf,"🛡️","Anti Stun",3,function() return AntiStunActive end,function() AntiStunActive=not AntiStunActive if AntiStunActive then AntiStunConnection=RunService.Heartbeat:Connect(function() if not AntiStunActive then return end local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then local mc=pf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("Stunned",0) mc:SetAttribute("Stunned",false) mc:SetAttribute("Hitted",false) mc:SetAttribute("Stun",0) mc:SetAttribute("IsStunned",false) mc:SetAttribute("CanMove",true) mc:SetAttribute("Frozen",false) mc:SetAttribute("IsRagdolled",false) mc:SetAttribute("Ragdolled",false) end) local h=mc:FindFirstChildOfClass("Humanoid") if h then pcall(function() if h.WalkSpeed<16 then h.WalkSpeed=16 end if h.JumpPower<50 then h.JumpPower=50 end h:SetAttribute("IsRagdolled",false) h:SetAttribute("Ragdolled",false) h:SetAttribute("Stunned",false) end) end end end end end) else if AntiStunConnection then AntiStunConnection:Disconnect() AntiStunConnection=nil end end end)
+        mkTog(sf,"❤️","Anti Low HP",4,function() return AntiLowHPActive end,function() AntiLowHPActive=not AntiLowHPActive if AntiLowHPActive then AntiLowHPConnection=RunService.Heartbeat:Connect(function() if not AntiLowHPActive then return end local cf=workspace:FindFirstChild("Characters") if cf then local pf=cf:FindFirstChild("Players") if pf then local mc=pf:FindFirstChild(LocalPlayer.Name) if mc then pcall(function() mc:SetAttribute("LowHP",false) end) local h=mc:FindFirstChildOfClass("Humanoid") if h then pcall(function() h:SetAttribute("LowHP",false) end) end end end end end) else if AntiLowHPConnection then AntiLowHPConnection:Disconnect() AntiLowHPConnection=nil end end end)
+        mkTog(sf,"🦘","Infinite Jump",5,function() return InfiniteJumpActive end,function() InfiniteJumpActive=not InfiniteJumpActive if InfiniteJumpActive then if InfiniteJumpConnection then InfiniteJumpConnection:Disconnect() end InfiniteJumpConnection=UserInputService.JumpRequest:Connect(function() if InfiniteJumpActive then local mc=getMyCharacter() if mc then local h=mc:FindFirstChildOfClass("Humanoid") if h then h:ChangeState(Enum.HumanoidStateType.Jumping) end end end end) else if InfiniteJumpConnection then InfiniteJumpConnection:Disconnect() InfiniteJumpConnection=nil end end end)
+        local s5=Instance.new("Frame") s5.Parent=sf s5.BackgroundColor3=CurrentTheme.separator s5.Size=UDim2.new(0.92,0,0,1) s5.BorderSizePixel=0 s5.LayoutOrder=6 registerThemed("separator",s5)
+        local espRow=Instance.new("Frame") espRow.Parent=sf espRow.BackgroundTransparency=1 espRow.Size=UDim2.new(1,-6,0,42) espRow.LayoutOrder=7
+        local espBtn=Instance.new("TextButton") espBtn.Parent=espRow espBtn.BackgroundColor3=CurrentTheme.card espBtn.Size=UDim2.new(1,-48,0,42) espBtn.Font=Enum.Font.GothamBold espBtn.TextSize=12 espBtn.AutoButtonColor=false makeCorner(espBtn,10) registerThemed("card",espBtn) espBtn.MouseEnter:Connect(function() tween(espBtn,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) espBtn.MouseLeave:Connect(function() tween(espBtn,{BackgroundColor3=CurrentTheme.card},0.15) end)
+        local function uESP() if ESPEnabled then espBtn.Text="  👁️  ESP · ON" espBtn.TextColor3=Color3.fromRGB(80,220,120) else espBtn.Text="  👁️  ESP · OFF" espBtn.TextColor3=Color3.fromRGB(255,80,80) end end uESP()
+        espBtn.MouseButton1Click:Connect(function() ESPEnabled=not ESPEnabled if ESPEnabled then createESP() else removeESP() end uESP() end)
+        local espSet=Instance.new("TextButton") espSet.Parent=espRow espSet.BackgroundColor3=Color3.fromRGB(55,55,68) espSet.Position=UDim2.new(1,-42,0.5,-17) espSet.Size=UDim2.new(0,34,0,34) espSet.Font=Enum.Font.GothamBold espSet.Text="⚙" espSet.TextColor3=Color3.fromRGB(200,200,210) espSet.TextSize=14 makeCorner(espSet,8) hoverEffect(espSet,Color3.fromRGB(55,55,68),Color3.fromRGB(75,75,92))
+        espSet.MouseButton1Click:Connect(function()
+            local pop=Instance.new("Frame") pop.Parent=ScreenGui pop.BackgroundColor3=CurrentTheme.bg pop.Position=UDim2.new(0.5,-150,0.5,-120) pop.Size=UDim2.new(0,300,0,240) pop.ZIndex=100 pop.Active=true makeCorner(pop,12) makeStroke(pop,CurrentTheme.accent,2)
+            local pT=Instance.new("TextLabel") pT.Parent=pop pT.BackgroundTransparency=1 pT.Position=UDim2.new(0,0,0,10) pT.Size=UDim2.new(1,0,0,22) pT.Font=Enum.Font.GothamBold pT.Text="👁️ ESP Options" pT.TextColor3=CurrentTheme.text pT.TextSize=14 pT.ZIndex=101
+            local pC=Instance.new("TextButton") pC.Parent=pop pC.BackgroundColor3=Color3.fromRGB(220,55,55) pC.Position=UDim2.new(1,-30,0,8) pC.Size=UDim2.new(0,22,0,22) pC.Font=Enum.Font.GothamBold pC.Text="✖" pC.TextColor3=Color3.fromRGB(255,255,255) pC.TextSize=10 pC.ZIndex=101 makeCorner(pC,5) pC.MouseButton1Click:Connect(function() pop:Destroy() end)
+            for i,opt in ipairs({{k="showName",l="👤 Nom"},{k="showBounty",l="💰 Bounty"},{k="showFruit",l="🍎 Fruit"},{k="showLevel",l="📊 Niveau"},{k="showDistance",l="📏 Distance"}}) do
+                local row=Instance.new("Frame") row.Parent=pop row.BackgroundColor3=CurrentTheme.card row.Position=UDim2.new(0,15,0,38+(i-1)*36) row.Size=UDim2.new(1,-30,0,30) row.ZIndex=101 makeCorner(row,8)
+                local chk=Instance.new("TextButton") chk.Parent=row chk.BackgroundColor3=CurrentTheme.cardInner chk.Position=UDim2.new(0,6,0.5,-10) chk.Size=UDim2.new(0,20,0,20) chk.Font=Enum.Font.GothamBold chk.TextSize=14 chk.ZIndex=102 chk.AutoButtonColor=false makeCorner(chk,5)
+                local lb=Instance.new("TextLabel") lb.Parent=row lb.BackgroundTransparency=1 lb.Position=UDim2.new(0,32,0,0) lb.Size=UDim2.new(1,-40,1,0) lb.Font=Enum.Font.GothamBold lb.Text=opt.l lb.TextColor3=CurrentTheme.text lb.TextSize=11 lb.TextXAlignment=Enum.TextXAlignment.Left lb.ZIndex=102
+                local function uc() if ESPOptions[opt.k] then chk.Text="✓" chk.TextColor3=Color3.fromRGB(80,220,120) else chk.Text="" chk.TextColor3=Color3.fromRGB(255,80,80) end end uc()
+                local function tg() ESPOptions[opt.k]=not ESPOptions[opt.k] uc() saveSettings() if ESPEnabled then removeESP() createESP() end end
+                chk.MouseButton1Click:Connect(tg) row.InputBegan:Connect(function(inp) if inp.UserInputType==Enum.UserInputType.MouseButton1 then tg() end end)
+            end
+        end)
+        local s6=Instance.new("Frame") s6.Parent=sf s6.BackgroundColor3=CurrentTheme.separator s6.Size=UDim2.new(0.92,0,0,1) s6.BorderSizePixel=0 s6.LayoutOrder=8 registerThemed("separator",s6)
+        mkSec(sf,"🔄 SERVEUR",9)
+        local shB=Instance.new("TextButton") shB.Parent=sf shB.BackgroundColor3=CurrentTheme.card shB.Size=UDim2.new(1,-6,0,38) shB.Font=Enum.Font.GothamBold shB.Text="  🔄 Server Hop" shB.TextColor3=CurrentTheme.textDim shB.TextSize=12 shB.TextXAlignment=Enum.TextXAlignment.Left shB.LayoutOrder=10 makeCorner(shB,10) registerThemed("card",shB) registerThemed("textDim",shB,"TextColor3") shB.MouseEnter:Connect(function() tween(shB,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) shB.MouseLeave:Connect(function() tween(shB,{BackgroundColor3=CurrentTheme.card},0.15) end) shB.MouseButton1Click:Connect(function() shB.Text="  🔄 ..." task.spawn(function() pcall(function() local pid=game.PlaceId local sv=HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..pid.."/servers/Public?sortOrder=Asc&limit=100")) if sv and sv.data then for _,s in ipairs(sv.data) do if s.id~=game.JobId and s.playing<s.maxPlayers then game:GetService("TeleportService"):TeleportToPlaceInstance(pid,s.id,LocalPlayer) return end end end shB.Text="  ❌" task.wait(2) shB.Text="  🔄 Server Hop" end) end) end)
+        local rjB=Instance.new("TextButton") rjB.Parent=sf rjB.BackgroundColor3=CurrentTheme.card rjB.Size=UDim2.new(1,-6,0,38) rjB.Font=Enum.Font.GothamBold rjB.Text="  🔁 Rejoin" rjB.TextColor3=CurrentTheme.textDim rjB.TextSize=12 rjB.TextXAlignment=Enum.TextXAlignment.Left rjB.LayoutOrder=11 makeCorner(rjB,10) registerThemed("card",rjB) registerThemed("textDim",rjB,"TextColor3") rjB.MouseEnter:Connect(function() tween(rjB,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) rjB.MouseLeave:Connect(function() tween(rjB,{BackgroundColor3=CurrentTheme.card},0.15) end) rjB.MouseButton1Click:Connect(function() game:GetService("TeleportService"):Teleport(game.PlaceId,LocalPlayer) end)
     end
 
-    local function bG5()
-        clr() SettingsOpen = true
-        G5 = Instance.new("Frame") G5.Parent = CA G5.BackgroundTransparency = 1 G5.Size = UDim2.new(1,0,1,0)
-        local sf = mkScroll(G5)
-        mkSec(sf, "🎨 THÈMES", 0)
-        local to = 1 local tbs = {}
-        local tl = {{n="Noir & Gris",i="⚫",c1=Color3.fromRGB(18,18,22),c2=Color3.fromRGB(120,160,220)},{n="Violet Néon",i="🟣",c1=Color3.fromRGB(8,4,18),c2=Color3.fromRGB(200,60,255)},{n="Vert & Noir",i="🟢",c1=Color3.fromRGB(4,12,6),c2=Color3.fromRGB(50,255,100)},{n="Liquid Glass",i="💎",c1=Color3.fromRGB(35,40,55),c2=Color3.fromRGB(140,190,255)}}
-        local function uatb() for tn,d in pairs(tbs) do if tn == CurrentThemeName then d.l.Text = "✅" else d.l.Text = "→" end end end
+
+    local function bG5() clr() SettingsOpen=true G5=Instance.new("Frame") G5.Parent=CA G5.BackgroundTransparency=1 G5.Size=UDim2.new(1,0,1,0) local sf=mkScroll(G5)
+        mkSec(sf,"🎨 THÈMES",0)
+        local to=1 local tbs={}
+        local tl={{n="Noir & Gris",i="⚫",c1=Color3.fromRGB(18,18,22),c2=Color3.fromRGB(120,160,220)},{n="Violet Néon",i="🟣",c1=Color3.fromRGB(8,4,18),c2=Color3.fromRGB(200,60,255)},{n="Vert & Noir",i="🟢",c1=Color3.fromRGB(4,12,6),c2=Color3.fromRGB(50,255,100)},{n="Liquid Glass",i="💎",c1=Color3.fromRGB(35,40,55),c2=Color3.fromRGB(140,190,255)}}
+        local function uatb() for tn,d in pairs(tbs) do if tn==CurrentThemeName then d.l.Text="✅" else d.l.Text="→" end end end
         for _,ti in ipairs(tl) do
-            local tb = Instance.new("TextButton") tb.Parent = sf tb.BackgroundColor3 = CurrentTheme.card tb.Size = UDim2.new(1,-6,0,44) tb.Text = "" tb.LayoutOrder = to tb.AutoButtonColor = false makeCorner(tb, 10) registerThemed("card", tb)
-            local p1 = Instance.new("Frame") p1.Parent = tb p1.BackgroundColor3 = ti.c1 p1.Position = UDim2.new(0,10,0.5,-12) p1.Size = UDim2.new(0,24,0,24) makeCorner(p1, 6) makeStroke(p1, ti.c2, 2)
-            local tn2 = Instance.new("TextLabel") tn2.Parent = tb tn2.BackgroundTransparency = 1 tn2.Position = UDim2.new(0,44,0,0) tn2.Size = UDim2.new(1,-90,1,0) tn2.Font = Enum.Font.GothamBold tn2.Text = ti.i.." "..ti.n tn2.TextColor3 = CurrentTheme.text tn2.TextSize = 11 tn2.TextXAlignment = Enum.TextXAlignment.Left registerThemed("text", tn2, "TextColor3")
-            local al = Instance.new("TextButton") al.Parent = tb al.BackgroundColor3 = Color3.fromRGB(50,50,62) al.Position = UDim2.new(1,-40,0.5,-10) al.Size = UDim2.new(0,32,0,20) al.Font = Enum.Font.GothamBold al.TextColor3 = Color3.fromRGB(200,200,210) al.TextSize = 10 makeCorner(al, 5)
-            tbs[ti.n] = {l=al}
-            local thn = ti.n
-            local function at() applyTheme(thn, 0.5) uatb() end tb.MouseButton1Click:Connect(at) al.MouseButton1Click:Connect(at)
-            tb.MouseEnter:Connect(function() tween(tb, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end) tb.MouseLeave:Connect(function() tween(tb, {BackgroundColor3=CurrentTheme.card}, 0.15) end)
-            to = to + 1
+            local tb=Instance.new("TextButton") tb.Parent=sf tb.BackgroundColor3=CurrentTheme.card tb.Size=UDim2.new(1,-6,0,44) tb.Text="" tb.LayoutOrder=to tb.AutoButtonColor=false makeCorner(tb,10) registerThemed("card",tb)
+            local p1=Instance.new("Frame") p1.Parent=tb p1.BackgroundColor3=ti.c1 p1.Position=UDim2.new(0,10,0.5,-12) p1.Size=UDim2.new(0,24,0,24) makeCorner(p1,6) makeStroke(p1,ti.c2,2)
+            local tn2=Instance.new("TextLabel") tn2.Parent=tb tn2.BackgroundTransparency=1 tn2.Position=UDim2.new(0,44,0,0) tn2.Size=UDim2.new(1,-90,1,0) tn2.Font=Enum.Font.GothamBold tn2.Text=ti.i.." "..ti.n tn2.TextColor3=CurrentTheme.text tn2.TextSize=11 tn2.TextXAlignment=Enum.TextXAlignment.Left registerThemed("text",tn2,"TextColor3")
+            local al=Instance.new("TextButton") al.Parent=tb al.BackgroundColor3=Color3.fromRGB(50,50,62) al.Position=UDim2.new(1,-40,0.5,-10) al.Size=UDim2.new(0,32,0,20) al.Font=Enum.Font.GothamBold al.TextColor3=Color3.fromRGB(200,200,210) al.TextSize=10 makeCorner(al,5)
+            tbs[ti.n]={l=al}
+            local thn=ti.n
+            local function at() applyTheme(thn,0.5) uatb() end tb.MouseButton1Click:Connect(at) al.MouseButton1Click:Connect(at)
+            tb.MouseEnter:Connect(function() tween(tb,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end) tb.MouseLeave:Connect(function() tween(tb,{BackgroundColor3=CurrentTheme.card},0.15) end)
+            to=to+1
         end
         uatb()
 
-        local sp = Instance.new("Frame") sp.Parent = sf sp.BackgroundColor3 = CurrentTheme.separator sp.Size = UDim2.new(0.92,0,0,1) sp.BorderSizePixel = 0 sp.LayoutOrder = to registerThemed("separator", sp) to = to + 1
-        mkSec(sf, "🔍 TRANSPARENCE", to) to = to + 1
-        local slc = Instance.new("Frame") slc.Parent = sf slc.BackgroundColor3 = CurrentTheme.card slc.Size = UDim2.new(1,-6,0,55) slc.LayoutOrder = to makeCorner(slc, 10) registerThemed("card", slc) to = to + 1
-        local tv = Instance.new("TextLabel") tv.Parent = slc tv.BackgroundTransparency = 1 tv.Position = UDim2.new(0,0,0,36) tv.Size = UDim2.new(1,0,0,14) tv.Font = Enum.Font.GothamBold tv.Text = math.floor(CurrentTransparency*100).."%" tv.TextColor3 = CurrentTheme.accent tv.TextSize = 10 registerThemed("accent", tv, "TextColor3")
-        local slt = Instance.new("Frame") slt.Parent = slc slt.BackgroundColor3 = CurrentTheme.cardInner slt.Position = UDim2.new(0,12,0,12) slt.Size = UDim2.new(1,-24,0,12) makeCorner(slt, 6) registerThemed("cardInner", slt)
-        local slf = Instance.new("Frame") slf.Parent = slt slf.BackgroundColor3 = CurrentTheme.accent slf.Size = UDim2.new(CurrentTransparency,0,1,0) makeCorner(slf, 6) registerThemed("accent", slf)
-        local slk = Instance.new("Frame") slk.Parent = slt slk.BackgroundColor3 = CurrentTheme.knob slk.Position = UDim2.new(CurrentTransparency,-8,0.5,-8) slk.Size = UDim2.new(0,16,0,16) slk.ZIndex = 5 makeCorner(slk, 8) makeStroke(slk, CurrentTheme.stroke, 1.5, "stroke")
-        local dr = false
-        local function usl(ip) local tap = slt.AbsolutePosition.X local tas = slt.AbsoluteSize.X local rx = math.clamp((ip.X-tap)/tas,0,1) CurrentTransparency = rx slf.Size = UDim2.new(rx,0,1,0) slk.Position = UDim2.new(rx,-8,0.5,-8) tv.Text = math.floor(rx*100).."%" applyTransparency(rx) end
-        slt.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dr = true MC.Draggable = false usl(i.Position) end end)
-        slk.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dr = true MC.Draggable = false end end)
-        UserInputService.InputChanged:Connect(function(i) if dr and i.UserInputType == Enum.UserInputType.MouseMovement then usl(i.Position) end end)
-        UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 and dr then dr = false MC.Draggable = true end end)
+        local sp=Instance.new("Frame") sp.Parent=sf sp.BackgroundColor3=CurrentTheme.separator sp.Size=UDim2.new(0.92,0,0,1) sp.BorderSizePixel=0 sp.LayoutOrder=to registerThemed("separator",sp) to=to+1
+        mkSec(sf,"🔍 TRANSPARENCE",to) to=to+1
+        local slc=Instance.new("Frame") slc.Parent=sf slc.BackgroundColor3=CurrentTheme.card slc.Size=UDim2.new(1,-6,0,55) slc.LayoutOrder=to makeCorner(slc,10) registerThemed("card",slc) to=to+1
+        local tv=Instance.new("TextLabel") tv.Parent=slc tv.BackgroundTransparency=1 tv.Position=UDim2.new(0,0,0,36) tv.Size=UDim2.new(1,0,0,14) tv.Font=Enum.Font.GothamBold tv.Text=math.floor(CurrentTransparency*100).."%" tv.TextColor3=CurrentTheme.accent tv.TextSize=10 registerThemed("accent",tv,"TextColor3")
+        local slt=Instance.new("Frame") slt.Parent=slc slt.BackgroundColor3=CurrentTheme.cardInner slt.Position=UDim2.new(0,12,0,12) slt.Size=UDim2.new(1,-24,0,12) makeCorner(slt,6) registerThemed("cardInner",slt)
+        local slf=Instance.new("Frame") slf.Parent=slt slf.BackgroundColor3=CurrentTheme.accent slf.Size=UDim2.new(CurrentTransparency,0,1,0) makeCorner(slf,6) registerThemed("accent",slf)
+        local slk=Instance.new("Frame") slk.Parent=slt slk.BackgroundColor3=CurrentTheme.knob slk.Position=UDim2.new(CurrentTransparency,-8,0.5,-8) slk.Size=UDim2.new(0,16,0,16) slk.ZIndex=5 makeCorner(slk,8) makeStroke(slk,CurrentTheme.stroke,1.5,"stroke")
+        local dr=false
+        local function usl(ip) local tap=slt.AbsolutePosition.X local tas=slt.AbsoluteSize.X local rx=math.clamp((ip.X-tap)/tas,0,1) CurrentTransparency=rx slf.Size=UDim2.new(rx,0,1,0) slk.Position=UDim2.new(rx,-8,0.5,-8) tv.Text=math.floor(rx*100).."%" applyTransparency(rx) end
+        slt.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dr=true MC.Draggable=false usl(i.Position) end end)
+        slk.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dr=true MC.Draggable=false end end)
+        UserInputService.InputChanged:Connect(function(i) if dr and i.UserInputType==Enum.UserInputType.MouseMovement then usl(i.Position) end end)
+        UserInputService.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 and dr then dr=false MC.Draggable=true end end)
 
-        local sw = Instance.new("Frame") sw.Parent = sf sw.BackgroundColor3 = CurrentTheme.separator sw.Size = UDim2.new(0.92,0,0,1) sw.BorderSizePixel = 0 sw.LayoutOrder = to registerThemed("separator", sw) to = to + 1
+        local sw=Instance.new("Frame") sw.Parent=sf sw.BackgroundColor3=CurrentTheme.separator sw.Size=UDim2.new(0.92,0,0,1) sw.BorderSizePixel=0 sw.LayoutOrder=to registerThemed("separator",sw) to=to+1
 
-        mkSec(sf, "⌨️ TOUCHE TOGGLE", to) to = to + 1
-        local tkCard = Instance.new("Frame") tkCard.Parent = sf tkCard.BackgroundColor3 = CurrentTheme.card tkCard.Size = UDim2.new(1,-6,0,70) tkCard.LayoutOrder = to makeCorner(tkCard, 10) registerThemed("card", tkCard) to = to + 1
-        local tkDesc = Instance.new("TextLabel") tkDesc.Parent = tkCard tkDesc.BackgroundTransparency = 1 tkDesc.Position = UDim2.new(0,10,0,6) tkDesc.Size = UDim2.new(1,-20,0,14) tkDesc.Font = Enum.Font.Gotham tkDesc.Text = "Touche pour minimiser/agrandir le hub" tkDesc.TextColor3 = CurrentTheme.textDim tkDesc.TextSize = 9 tkDesc.TextXAlignment = Enum.TextXAlignment.Left registerThemed("textDim", tkDesc, "TextColor3")
-        local tkBtn = Instance.new("TextButton") tkBtn.Parent = tkCard tkBtn.BackgroundColor3 = CurrentTheme.cardInner tkBtn.Position = UDim2.new(0.1,0,0,28) tkBtn.Size = UDim2.new(0.8,0,0,30) tkBtn.Font = Enum.Font.GothamBold tkBtn.Text = "[ "..getKeyName(ToggleKeyCode).." ]  ·  Cliquez pour changer" tkBtn.TextColor3 = CurrentTheme.accent tkBtn.TextSize = 11 tkBtn.AutoButtonColor = false makeCorner(tkBtn, 8) makeStroke(tkBtn, CurrentTheme.strokeLight, 1, "strokeLight") registerThemed("cardInner", tkBtn) registerThemed("accent", tkBtn, "TextColor3")
-        local waitingForKey = false
+        mkSec(sf,"⌨️ TOUCHE TOGGLE",to) to=to+1
+        local tkCard=Instance.new("Frame") tkCard.Parent=sf tkCard.BackgroundColor3=CurrentTheme.card tkCard.Size=UDim2.new(1,-6,0,70) tkCard.LayoutOrder=to makeCorner(tkCard,10) registerThemed("card",tkCard) to=to+1
+        local tkDesc=Instance.new("TextLabel") tkDesc.Parent=tkCard tkDesc.BackgroundTransparency=1 tkDesc.Position=UDim2.new(0,10,0,6) tkDesc.Size=UDim2.new(1,-20,0,14) tkDesc.Font=Enum.Font.Gotham tkDesc.Text="Touche pour minimiser/agrandir le hub" tkDesc.TextColor3=CurrentTheme.textDim tkDesc.TextSize=9 tkDesc.TextXAlignment=Enum.TextXAlignment.Left registerThemed("textDim",tkDesc,"TextColor3")
+        local tkBtn=Instance.new("TextButton") tkBtn.Parent=tkCard tkBtn.BackgroundColor3=CurrentTheme.cardInner tkBtn.Position=UDim2.new(0.1,0,0,28) tkBtn.Size=UDim2.new(0.8,0,0,30) tkBtn.Font=Enum.Font.GothamBold tkBtn.Text="[ "..getKeyName(ToggleKeyCode).." ]  ·  Cliquez pour changer" tkBtn.TextColor3=CurrentTheme.accent tkBtn.TextSize=11 tkBtn.AutoButtonColor=false makeCorner(tkBtn,8) makeStroke(tkBtn,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("cardInner",tkBtn) registerThemed("accent",tkBtn,"TextColor3")
+        local tkWait=false
         tkBtn.MouseButton1Click:Connect(function()
-            if waitingForKey then return end
-            waitingForKey = true
-            tkBtn.Text = "⏳ Appuyez sur une touche..."
-            tkBtn.TextColor3 = Color3.fromRGB(255,220,80)
-            local conn
-            conn = UserInputService.InputBegan:Connect(function(input, processed)
-                if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
-                if input.KeyCode == Enum.KeyCode.Escape then
-                    waitingForKey = false
-                    tkBtn.Text = "[ "..getKeyName(ToggleKeyCode).." ]  ·  Cliquez pour changer"
-                    tkBtn.TextColor3 = CurrentTheme.accent
-                    conn:Disconnect()
-                    return
-                end
-                ToggleKeyCode = input.KeyCode
-                waitingForKey = false
-                tkBtn.Text = "✅ [ "..getKeyName(ToggleKeyCode).." ]"
-                tkBtn.TextColor3 = Color3.fromRGB(80,220,120)
-                saveSettings()
-                conn:Disconnect()
-                task.wait(1)
-                tkBtn.Text = "[ "..getKeyName(ToggleKeyCode).." ]  ·  Cliquez pour changer"
-                tkBtn.TextColor3 = CurrentTheme.accent
+            if tkWait then return end tkWait=true tkBtn.Text="⏳ Appuyez..." tkBtn.TextColor3=Color3.fromRGB(255,220,80)
+            local conn conn=UserInputService.InputBegan:Connect(function(input,processed)
+                if input.UserInputType~=Enum.UserInputType.Keyboard then return end
+                if input.KeyCode==Enum.KeyCode.Escape then tkWait=false tkBtn.Text="[ "..getKeyName(ToggleKeyCode).." ]  ·  Cliquez pour changer" tkBtn.TextColor3=CurrentTheme.accent conn:Disconnect() return end
+                ToggleKeyCode=input.KeyCode tkWait=false tkBtn.Text="✅ [ "..getKeyName(ToggleKeyCode).." ]" tkBtn.TextColor3=Color3.fromRGB(80,220,120) saveSettings() conn:Disconnect()
+                task.wait(1) tkBtn.Text="[ "..getKeyName(ToggleKeyCode).." ]  ·  Cliquez pour changer" tkBtn.TextColor3=CurrentTheme.accent
             end)
         end)
 
-        local sw2 = Instance.new("Frame") sw2.Parent = sf sw2.BackgroundColor3 = CurrentTheme.separator sw2.Size = UDim2.new(0.92,0,0,1) sw2.BorderSizePixel = 0 sw2.LayoutOrder = to registerThemed("separator", sw2) to = to + 1
-        mkSec(sf, "🔗 WEBHOOK", to) to = to + 1
-        local whC = Instance.new("Frame") whC.Parent = sf whC.BackgroundColor3 = CurrentTheme.card whC.Size = UDim2.new(1,-6,0,65) whC.LayoutOrder = to makeCorner(whC, 10) registerThemed("card", whC) to = to + 1
-        local whI = Instance.new("TextBox") whI.Parent = whC whI.BackgroundColor3 = CurrentTheme.input whI.Position = UDim2.new(0,8,0,8) whI.Size = UDim2.new(1,-75,0,26) whI.Font = Enum.Font.Gotham whI.Text = WebhookURL whI.PlaceholderText = "Webhook URL..." whI.TextColor3 = CurrentTheme.accent whI.TextSize = 9 whI.ClearTextOnFocus = false whI.TextXAlignment = Enum.TextXAlignment.Left makeCorner(whI, 6) registerThemed("input", whI) registerThemed("accent", whI, "TextColor3")
-        local whS = Instance.new("TextLabel") whS.Parent = whC whS.BackgroundTransparency = 1 whS.Position = UDim2.new(0,10,0,40) whS.Size = UDim2.new(1,-20,0,14) whS.Font = Enum.Font.Gotham whS.TextSize = 9 whS.TextXAlignment = Enum.TextXAlignment.Left
-        if WebhookURL ~= "" then whS.Text = "✅ OK" whS.TextColor3 = Color3.fromRGB(80,220,120) else whS.Text = "⚠️ Aucun" whS.TextColor3 = Color3.fromRGB(255,180,60) end
-        whI.FocusLost:Connect(function() WebhookURL = whI.Text if WebhookURL ~= "" and string.find(WebhookURL,"discord") then whS.Text = "✅ Sauvé" whS.TextColor3 = Color3.fromRGB(80,220,120) else whS.Text = "⚠️" whS.TextColor3 = Color3.fromRGB(255,180,60) end saveSettings() end)
-        local whT = Instance.new("TextButton") whT.Parent = whC whT.BackgroundColor3 = Color3.fromRGB(40,50,70) whT.Position = UDim2.new(1,-62,0,8) whT.Size = UDim2.new(0,50,0,26) whT.Font = Enum.Font.GothamBold whT.Text = "Test" whT.TextColor3 = Color3.fromRGB(140,190,255) whT.TextSize = 10 makeCorner(whT, 6)
-        whT.MouseButton1Click:Connect(function() LastWebhookTime = 0 sendWebhook("🧪 Test — Supernova Hub OK!") whT.Text = "✅" task.wait(1) whT.Text = "Test" end)
+        local sw2=Instance.new("Frame") sw2.Parent=sf sw2.BackgroundColor3=CurrentTheme.separator sw2.Size=UDim2.new(0.92,0,0,1) sw2.BorderSizePixel=0 sw2.LayoutOrder=to registerThemed("separator",sw2) to=to+1
+
+        mkSec(sf,"🎯 TOUCHE TP JOUEUR (mini)",to) to=to+1
+        local tpCard=Instance.new("Frame") tpCard.Parent=sf tpCard.BackgroundColor3=CurrentTheme.card tpCard.Size=UDim2.new(1,-6,0,70) tpCard.LayoutOrder=to makeCorner(tpCard,10) registerThemed("card",tpCard) to=to+1
+        local tpDesc=Instance.new("TextLabel") tpDesc.Parent=tpCard tpDesc.BackgroundTransparency=1 tpDesc.Position=UDim2.new(0,10,0,6) tpDesc.Size=UDim2.new(1,-20,0,14) tpDesc.Font=Enum.Font.Gotham tpDesc.Text="Touche pour TP au joueur sélectionné (mini panel)" tpDesc.TextColor3=CurrentTheme.textDim tpDesc.TextSize=9 tpDesc.TextXAlignment=Enum.TextXAlignment.Left registerThemed("textDim",tpDesc,"TextColor3")
+        local tpBtn=Instance.new("TextButton") tpBtn.Parent=tpCard tpBtn.BackgroundColor3=CurrentTheme.cardInner tpBtn.Position=UDim2.new(0.1,0,0,28) tpBtn.Size=UDim2.new(0.8,0,0,30) tpBtn.Font=Enum.Font.GothamBold tpBtn.Text="[ "..getKeyName(TPToPlayerKeyCode).." ]  ·  Cliquez pour changer" tpBtn.TextColor3=CurrentTheme.accent tpBtn.TextSize=11 tpBtn.AutoButtonColor=false makeCorner(tpBtn,8) makeStroke(tpBtn,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("cardInner",tpBtn) registerThemed("accent",tpBtn,"TextColor3")
+        local tpWait=false
+        tpBtn.MouseButton1Click:Connect(function()
+            if tpWait then return end tpWait=true tpBtn.Text="⏳ Appuyez..." tpBtn.TextColor3=Color3.fromRGB(255,220,80)
+            local conn conn=UserInputService.InputBegan:Connect(function(input,processed)
+                if input.UserInputType~=Enum.UserInputType.Keyboard then return end
+                if input.KeyCode==Enum.KeyCode.Escape then tpWait=false tpBtn.Text="[ "..getKeyName(TPToPlayerKeyCode).." ]  ·  Cliquez pour changer" tpBtn.TextColor3=CurrentTheme.accent conn:Disconnect() return end
+                TPToPlayerKeyCode=input.KeyCode tpWait=false tpBtn.Text="✅ [ "..getKeyName(TPToPlayerKeyCode).." ]" tpBtn.TextColor3=Color3.fromRGB(80,220,120) saveSettings() conn:Disconnect()
+                task.wait(1) tpBtn.Text="[ "..getKeyName(TPToPlayerKeyCode).." ]  ·  Cliquez pour changer" tpBtn.TextColor3=CurrentTheme.accent
+            end)
+        end)
+
+        local sw3=Instance.new("Frame") sw3.Parent=sf sw3.BackgroundColor3=CurrentTheme.separator sw3.Size=UDim2.new(0.92,0,0,1) sw3.BorderSizePixel=0 sw3.LayoutOrder=to registerThemed("separator",sw3) to=to+1
+        mkSec(sf,"🔗 WEBHOOK",to) to=to+1
+        local whC=Instance.new("Frame") whC.Parent=sf whC.BackgroundColor3=CurrentTheme.card whC.Size=UDim2.new(1,-6,0,65) whC.LayoutOrder=to makeCorner(whC,10) registerThemed("card",whC) to=to+1
+        local whI=Instance.new("TextBox") whI.Parent=whC whI.BackgroundColor3=CurrentTheme.input whI.Position=UDim2.new(0,8,0,8) whI.Size=UDim2.new(1,-75,0,26) whI.Font=Enum.Font.Gotham whI.Text=WebhookURL whI.PlaceholderText="Webhook URL..." whI.TextColor3=CurrentTheme.accent whI.TextSize=9 whI.ClearTextOnFocus=false whI.TextXAlignment=Enum.TextXAlignment.Left makeCorner(whI,6) registerThemed("input",whI) registerThemed("accent",whI,"TextColor3")
+        local whS=Instance.new("TextLabel") whS.Parent=whC whS.BackgroundTransparency=1 whS.Position=UDim2.new(0,10,0,40) whS.Size=UDim2.new(1,-20,0,14) whS.Font=Enum.Font.Gotham whS.TextSize=9 whS.TextXAlignment=Enum.TextXAlignment.Left
+        if WebhookURL~="" then whS.Text="✅ OK" whS.TextColor3=Color3.fromRGB(80,220,120) else whS.Text="⚠️ Aucun" whS.TextColor3=Color3.fromRGB(255,180,60) end
+        whI.FocusLost:Connect(function() WebhookURL=whI.Text if WebhookURL~="" and string.find(WebhookURL,"discord") then whS.Text="✅ Sauvé" whS.TextColor3=Color3.fromRGB(80,220,120) else whS.Text="⚠️" whS.TextColor3=Color3.fromRGB(255,180,60) end saveSettings() end)
+        local whT=Instance.new("TextButton") whT.Parent=whC whT.BackgroundColor3=Color3.fromRGB(40,50,70) whT.Position=UDim2.new(1,-62,0,8) whT.Size=UDim2.new(0,50,0,26) whT.Font=Enum.Font.GothamBold whT.Text="Test" whT.TextColor3=Color3.fromRGB(140,190,255) whT.TextSize=10 makeCorner(whT,6)
+        whT.MouseButton1Click:Connect(function() LastWebhookTime=0 sendWebhook("🧪 Test — Supernova Hub OK!") whT.Text="✅" task.wait(1) whT.Text="Test" end)
     end
 
-    local function bG6()
-        clr() cP = "Stats" uSH("Stats")
-        G6 = Instance.new("Frame") G6.Parent = CA G6.BackgroundTransparency = 1 G6.Size = UDim2.new(1,0,1,0)
-        local sf = mkScroll(G6)
-        mkSec(sf, "📊 STATS", 0)
-        local gL = Instance.new("TextLabel") gL.Parent = sf gL.BackgroundColor3 = CurrentTheme.card gL.Size = UDim2.new(1,-6,0,34) gL.Font = Enum.Font.GothamBold gL.Text = "  💎 ..." gL.TextColor3 = Color3.fromRGB(255,220,80) gL.TextSize = 13 gL.TextXAlignment = Enum.TextXAlignment.Left gL.LayoutOrder = 1 makeCorner(gL, 8) registerThemed("card", gL)
-        local tL = Instance.new("TextLabel") tL.Parent = sf tL.BackgroundColor3 = CurrentTheme.card tL.Size = UDim2.new(1,-6,0,34) tL.Font = Enum.Font.GothamBold tL.Text = "  🏆 ..." tL.TextColor3 = Color3.fromRGB(180,140,255) tL.TextSize = 13 tL.TextXAlignment = Enum.TextXAlignment.Left tL.LayoutOrder = 2 makeCorner(tL, 8) registerThemed("card", tL)
-        mkSec(sf, "🎰 SPINS", 3)
-        local spS = Instance.new("ScrollingFrame") spS.Parent = sf spS.BackgroundColor3 = CurrentTheme.cardInner spS.Size = UDim2.new(1,-6,0,130) spS.CanvasSize = UDim2.new(0,0,0,0) spS.AutomaticCanvasSize = Enum.AutomaticSize.Y spS.ScrollBarThickness = 2 spS.BorderSizePixel = 0 spS.LayoutOrder = 4 makeCorner(spS, 8) registerThemed("cardInner", spS)
-        Instance.new("UIListLayout", spS).SortOrder = Enum.SortOrder.LayoutOrder
-        local spP = Instance.new("UIPadding") spP.Parent = spS spP.PaddingTop = UDim.new(0,4) spP.PaddingLeft = UDim.new(0,6) spP.PaddingRight = UDim.new(0,6)
-        mkSec(sf, "👹 BOSS", 5)
-        local kL = Instance.new("TextLabel") kL.Parent = sf kL.BackgroundColor3 = CurrentTheme.card kL.Size = UDim2.new(1,-6,0,70) kL.Font = Enum.Font.GothamBold kL.Text = "..." kL.TextColor3 = Color3.fromRGB(255,100,100) kL.TextSize = 11 kL.TextXAlignment = Enum.TextXAlignment.Left kL.TextYAlignment = Enum.TextYAlignment.Top kL.LayoutOrder = 6 makeCorner(kL, 8) registerThemed("card", kL)
-        mkSec(sf, "📦 SLOTS", 7)
-        local sL = Instance.new("TextLabel") sL.Parent = sf sL.BackgroundColor3 = CurrentTheme.card sL.Size = UDim2.new(1,-6,0,34) sL.Font = Enum.Font.GothamBold sL.Text = "  📦 ..." sL.TextColor3 = Color3.fromRGB(140,200,255) sL.TextSize = 13 sL.TextXAlignment = Enum.TextXAlignment.Left sL.LayoutOrder = 8 makeCorner(sL, 8) registerThemed("card", sL)
+    local function bG6() clr() cP="Stats" uSH("Stats") G6=Instance.new("Frame") G6.Parent=CA G6.BackgroundTransparency=1 G6.Size=UDim2.new(1,0,1,0) local sf=mkScroll(G6)
+        mkSec(sf,"📊 STATS",0)
+        local gL=Instance.new("TextLabel") gL.Parent=sf gL.BackgroundColor3=CurrentTheme.card gL.Size=UDim2.new(1,-6,0,34) gL.Font=Enum.Font.GothamBold gL.Text="  💎 ..." gL.TextColor3=Color3.fromRGB(255,220,80) gL.TextSize=13 gL.TextXAlignment=Enum.TextXAlignment.Left gL.LayoutOrder=1 makeCorner(gL,8) registerThemed("card",gL)
+        local tL=Instance.new("TextLabel") tL.Parent=sf tL.BackgroundColor3=CurrentTheme.card tL.Size=UDim2.new(1,-6,0,34) tL.Font=Enum.Font.GothamBold tL.Text="  🏆 ..." tL.TextColor3=Color3.fromRGB(180,140,255) tL.TextSize=13 tL.TextXAlignment=Enum.TextXAlignment.Left tL.LayoutOrder=2 makeCorner(tL,8) registerThemed("card",tL)
+
+        local s1=Instance.new("Frame") s1.Parent=sf s1.BackgroundColor3=CurrentTheme.separator s1.Size=UDim2.new(0.92,0,0,1) s1.BorderSizePixel=0 s1.LayoutOrder=3 registerThemed("separator",s1)
+        mkSec(sf,"👹 BOSS KILLS",4)
+        local bossCard=Instance.new("Frame") bossCard.Parent=sf bossCard.BackgroundColor3=CurrentTheme.card bossCard.Size=UDim2.new(1,-6,0,100) bossCard.LayoutOrder=5 makeCorner(bossCard,8) registerThemed("card",bossCard)
+        local kaidoL=Instance.new("TextLabel") kaidoL.Parent=bossCard kaidoL.BackgroundTransparency=1 kaidoL.Position=UDim2.new(0,14,0,10) kaidoL.Size=UDim2.new(1,-28,0,24) kaidoL.Font=Enum.Font.GothamBold kaidoL.Text="  🐉  Kaido: ..." kaidoL.TextColor3=Color3.fromRGB(255,100,100) kaidoL.TextSize=14 kaidoL.TextXAlignment=Enum.TextXAlignment.Left
+        local kataL=Instance.new("TextLabel") kataL.Parent=bossCard kataL.BackgroundTransparency=1 kataL.Position=UDim2.new(0,14,0,38) kataL.Size=UDim2.new(1,-28,0,24) kataL.Font=Enum.Font.GothamBold kataL.Text="  🍩  Katakuri: ..." kataL.TextColor3=Color3.fromRGB(255,150,100) kataL.TextSize=14 kataL.TextXAlignment=Enum.TextXAlignment.Left
+        local bossL=Instance.new("TextLabel") bossL.Parent=bossCard bossL.BackgroundTransparency=1 bossL.Position=UDim2.new(0,14,0,66) bossL.Size=UDim2.new(1,-28,0,24) bossL.Font=Enum.Font.GothamBold bossL.Text="  ⚔️  Total Boss: ..." bossL.TextColor3=Color3.fromRGB(200,200,100) bossL.TextSize=14 bossL.TextXAlignment=Enum.TextXAlignment.Left
+
+        local s2=Instance.new("Frame") s2.Parent=sf s2.BackgroundColor3=CurrentTheme.separator s2.Size=UDim2.new(0.92,0,0,1) s2.BorderSizePixel=0 s2.LayoutOrder=6 registerThemed("separator",s2)
+        mkSec(sf,"📦 SLOTS",7)
+        local slotsCard=Instance.new("Frame") slotsCard.Parent=sf slotsCard.BackgroundColor3=CurrentTheme.card slotsCard.Size=UDim2.new(1,-6,0,120) slotsCard.LayoutOrder=8 makeCorner(slotsCard,8) registerThemed("card",slotsCard)
+        local slotsText=Instance.new("TextLabel") slotsText.Parent=slotsCard slotsText.BackgroundTransparency=1 slotsText.Position=UDim2.new(0,14,0,10) slotsText.Size=UDim2.new(1,-28,1,-20) slotsText.Font=Enum.Font.GothamBold slotsText.Text="..." slotsText.TextColor3=Color3.fromRGB(140,200,255) slotsText.TextSize=14 slotsText.TextXAlignment=Enum.TextXAlignment.Left slotsText.TextYAlignment=Enum.TextYAlignment.Top slotsText.TextWrapped=true
+
+        local s3=Instance.new("Frame") s3.Parent=sf s3.BackgroundColor3=CurrentTheme.separator s3.Size=UDim2.new(0.92,0,0,1) s3.BorderSizePixel=0 s3.LayoutOrder=9 registerThemed("separator",s3)
+        mkSec(sf,"🍎 TOUS LES FRUITS",10)
+        local fruitsScroll=Instance.new("ScrollingFrame") fruitsScroll.Parent=sf fruitsScroll.BackgroundColor3=CurrentTheme.cardInner fruitsScroll.Size=UDim2.new(1,-6,0,200) fruitsScroll.CanvasSize=UDim2.new(0,0,0,0) fruitsScroll.AutomaticCanvasSize=Enum.AutomaticSize.Y fruitsScroll.ScrollBarThickness=3 fruitsScroll.ScrollBarImageColor3=CurrentTheme.stroke fruitsScroll.BorderSizePixel=0 fruitsScroll.LayoutOrder=11 makeCorner(fruitsScroll,8) makeStroke(fruitsScroll,CurrentTheme.strokeLight,1,"strokeLight") registerThemed("cardInner",fruitsScroll)
+        local fruitsLayout=Instance.new("UIListLayout") fruitsLayout.Parent=fruitsScroll fruitsLayout.SortOrder=Enum.SortOrder.LayoutOrder fruitsLayout.Padding=UDim.new(0,3)
+        local fruitsPad=Instance.new("UIPadding") fruitsPad.Parent=fruitsScroll fruitsPad.PaddingTop=UDim.new(0,6) fruitsPad.PaddingLeft=UDim.new(0,8) fruitsPad.PaddingRight=UDim.new(0,8) fruitsPad.PaddingBottom=UDim.new(0,6)
+
         local function ref() pcall(function()
-            local md = LocalPlayer:FindFirstChild("MAIN_DATA") if not md then return end
-            local g = md:FindFirstChild("Gems") gL.Text = g and "  💎 Gems: "..tostring(g.Value) or "  💎 N/A"
-            local t = md:FindFirstChild("Titles") tL.Text = t and "  🏆 Titres: "..#t:GetChildren() or "  🏆 N/A"
-            local ka = md:FindFirstChild("KaidoKills") local kt = md:FindFirstChild("KatakuriKills") local bk = md:FindFirstChild("BossKills")
-            kL.Text = "  🐉 Kaido: "..(ka and tostring(ka.Value) or "?").."\n  🍩 Kata: "..(kt and tostring(kt.Value) or "?").."\n  ⚔️ Boss: "..(bk and tostring(bk.Value) or "?")
-            local sl = md:FindFirstChild("Slots") sL.Text = sl and "  📦 Slots: "..tostring(sl.Value) or "  📦 N/A"
-            for _,ch in ipairs(spS:GetChildren()) do if ch:IsA("TextLabel") then ch:Destroy() end end
-            local sh = md:FindFirstChild("SpinHistory") if sh then for o,se in ipairs(sh:GetChildren()) do local el = Instance.new("TextLabel") el.Parent = spS el.BackgroundColor3 = CurrentTheme.card el.Size = UDim2.new(1,-6,0,22) el.Font = Enum.Font.GothamSemibold el.TextSize = 10 el.TextXAlignment = Enum.TextXAlignment.Left el.LayoutOrder = o makeCorner(el, 6) registerThemed("card", el) local v = "" pcall(function() v = tostring(se.Value) end) el.Text = "  🎰 "..se.Name..(v ~= "" and ": "..v or "") el.TextColor3 = CurrentTheme.textDim registerThemed("textDim", el, "TextColor3") end end
+            local md=LocalPlayer:FindFirstChild("MAIN_DATA") if not md then return end
+
+            local g=md:FindFirstChild("Gems") gL.Text=g and "  💎  Gems: "..tostring(g.Value) or "  💎  N/A"
+            local t=md:FindFirstChild("Titles") tL.Text=t and "  🏆  Titres: "..#t:GetChildren() or "  🏆  N/A"
+
+            local ka=md:FindFirstChild("KaidoKills") kaidoL.Text="  🐉  Kaido: "..(ka and tostring(ka.Value) or "?")
+            local kt=md:FindFirstChild("KatakuriKills") kataL.Text="  🍩  Katakuri: "..(kt and tostring(kt.Value) or "?")
+            local bk=md:FindFirstChild("BossKills") bossL.Text="  ⚔️  Total Boss: "..(bk and tostring(bk.Value) or "?")
+
+            local slotsInfo=getAllSlotsInfo(LocalPlayer.Name)
+            local slotsTxt=""
+            for _,si in ipairs(slotsInfo) do slotsTxt=slotsTxt.."  "..tostring(si.slot).." = "..si.fruit.."\n" end
+            if slotsTxt=="" then slotsTxt="  Aucun slot" end
+            slotsText.Text=slotsTxt
+
+            for _,ch in ipairs(fruitsScroll:GetChildren()) do if ch:IsA("TextLabel") then ch:Destroy() end end
+            local allFruits=getAllFruits(LocalPlayer.Name)
+            if #allFruits==0 then
+                local nf=Instance.new("TextLabel") nf.Parent=fruitsScroll nf.BackgroundTransparency=1 nf.Size=UDim2.new(1,-6,0,24) nf.Font=Enum.Font.Gotham nf.Text="  Aucun fruit" nf.TextColor3=Color3.fromRGB(90,90,100) nf.TextSize=10
+            else
+                for idx,fr in ipairs(allFruits) do
+                    local el=Instance.new("TextLabel") el.Parent=fruitsScroll el.BackgroundColor3=CurrentTheme.card el.Size=UDim2.new(1,-6,0,28) el.Font=Enum.Font.GothamSemibold el.TextSize=11 el.TextXAlignment=Enum.TextXAlignment.Left el.LayoutOrder=idx makeCorner(el,6) registerThemed("card",el)
+                    local lvlText=fr.level and (" · Lvl "..tostring(fr.level)) or ""
+                    el.Text="  🍎 "..fr.name..lvlText
+                    el.TextColor3=CurrentTheme.textDim registerThemed("textDim",el,"TextColor3")
+                end
+            end
         end) end
         ref() task.spawn(function() while G6 and G6.Parent do ref() task.wait(3) end end)
     end
 
-    local function uSHi(an) for n,b in pairs(sB) do if n == an then tween(b, {BackgroundColor3=CurrentTheme.sidebarActive}, 0.2) b.TextColor3 = CurrentTheme.accent else tween(b, {BackgroundColor3=CurrentTheme.sidebarBtn}, 0.2) b.TextColor3 = CurrentTheme.textDim end end end
+    local function uSHi(an) for n,b in pairs(sB) do if n==an then tween(b,{BackgroundColor3=CurrentTheme.sidebarActive},0.2) b.TextColor3=CurrentTheme.accent else tween(b,{BackgroundColor3=CurrentTheme.sidebarBtn},0.2) b.TextColor3=CurrentTheme.textDim end end end
     function uSH(n) uSHi(n) end
 
-    local function cSB(n, ic, o, cb)
-        local b = Instance.new("TextButton") b.Name = "S_"..n b.Parent = SDr b.BackgroundColor3 = CurrentTheme.sidebarBtn b.Position = UDim2.new(0,8,0,12+(o*44)) b.Size = UDim2.new(1,-16,0,38) b.Font = Enum.Font.GothamBold b.Text = ic.." "..n b.TextColor3 = CurrentTheme.textDim b.TextSize = 11 b.AutoButtonColor = false makeCorner(b, 8) registerThemed("sidebarBtn", b) registerThemed("textDim", b, "TextColor3")
-        b.MouseEnter:Connect(function() if cP ~= n then tween(b, {BackgroundColor3=CurrentTheme.hoverBtn}, 0.15) end end)
-        b.MouseLeave:Connect(function() if cP ~= n then tween(b, {BackgroundColor3=CurrentTheme.sidebarBtn}, 0.15) end end)
-        b.MouseButton1Click:Connect(function() cP = n SettingsOpen = false uSHi(n) cb() end)
-        sB[n] = b
+    local function cSB(n,ic,o,cb)
+        local b=Instance.new("TextButton") b.Name="S_"..n b.Parent=SDr b.BackgroundColor3=CurrentTheme.sidebarBtn b.Position=UDim2.new(0,8,0,12+(o*44)) b.Size=UDim2.new(1,-16,0,38) b.Font=Enum.Font.GothamBold b.Text=ic.." "..n b.TextColor3=CurrentTheme.textDim b.TextSize=11 b.AutoButtonColor=false makeCorner(b,8) registerThemed("sidebarBtn",b) registerThemed("textDim",b,"TextColor3")
+        b.MouseEnter:Connect(function() if cP~=n then tween(b,{BackgroundColor3=CurrentTheme.hoverBtn},0.15) end end)
+        b.MouseLeave:Connect(function() if cP~=n then tween(b,{BackgroundColor3=CurrentTheme.sidebarBtn},0.15) end end)
+        b.MouseButton1Click:Connect(function() cP=n SettingsOpen=false uSHi(n) cb() end)
+        sB[n]=b
     end
 
     cSB("Home","🏠",0,bG1) cSB("Teleport","🔀",1,bG2) cSB("Auto","⌨️",2,bG3) cSB("Misc","🔧",3,bG4) cSB("Stats","📊",4,bG6)
 
     SBt.MouseButton1Click:Connect(function()
-        if SettingsOpen then SettingsOpen = false
-            if cP == "Home" then bG1() elseif cP == "Teleport" then bG2() elseif cP == "Auto" then bG3() elseif cP == "Misc" then bG4() elseif cP == "Stats" then bG6() else bG1() end uSHi(cP)
-        else SettingsOpen = true for _,b in pairs(sB) do tween(b, {BackgroundColor3=CurrentTheme.sidebarBtn}, 0.2) b.TextColor3 = CurrentTheme.textDim end bG5() end
+        if SettingsOpen then SettingsOpen=false
+            if cP=="Home" then bG1() elseif cP=="Teleport" then bG2() elseif cP=="Auto" then bG3() elseif cP=="Misc" then bG4() elseif cP=="Stats" then bG6() else bG1() end uSHi(cP)
+        else SettingsOpen=true for _,b in pairs(sB) do tween(b,{BackgroundColor3=CurrentTheme.sidebarBtn},0.2) b.TextColor3=CurrentTheme.textDim end bG5() end
     end)
 
-    cP = "Home" uSHi("Home") bG1()
+    cP="Home" uSHi("Home") bG1()
 end
