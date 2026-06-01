@@ -9,7 +9,7 @@
 ║   ╚═╝  ╚═╝   ╚═╝    ╚═════╝                                      ║
 ║                                                                  ║
 ║              AOT REVOLUTION - PREMIUM SCRIPT                     ║
-║                  v1.0 • Compatible Potassium                     ║
+║                  v1.1 • Smart Auto Farm                          ║
 ╚══════════════════════════════════════════════════════════════════╝
 ]]
 
@@ -119,8 +119,15 @@ local DefaultSettings = {
     -- Paramètres
     CustomCursorAlways = false,
     ToggleKey = "P",
-    -- Offset bouton Retry
     RetryOffsetY = 75,
+    -- ═══ AUTO FARM ═══
+    AutoFarmEnabled = false,
+    FarmMaxDistance = 120,      -- Distance max pour détecter un titan
+    FarmSwingDelay = 35,        -- Délai entre swings (x10 = ms), slider 20-80
+    FarmMaxTitans = 35,         -- Titans max par session avant pause
+    FarmHumanize = true,        -- Mouvements humains A/E/W aléatoires
+    FarmHumanizeChance = 30,    -- Chance % de faire un mouvement humain
+    FarmAimSmooth = 6,          -- Vitesse de rotation cam (1=lent, 10=rapide)
 }
 
 local Settings = {}
@@ -286,7 +293,7 @@ local function getStats()
             end
         end
     end)
-    return s  -- ✅ BUG 1 CORRIGÉ : était "return" sans "s"
+    return s
 end
 
 -- ████████████████████████████████████████████████████████████████
@@ -298,9 +305,7 @@ local function findRefill()
         if not parent then return nil end
         return parent:FindFirstChild(name)
     end
-
     local containersToScan = {}
-
     local u = workspace:FindFirstChild("Unclimbable")
     if u then
         local camps = safeGet(u, "Camps")
@@ -309,7 +314,6 @@ local function findRefill()
             if campSub then table.insert(containersToScan, campSub) end
             table.insert(containersToScan, camps)
         end
-
         local world = safeGet(u, "World")
         if world then
             local buildings = safeGet(world, "Buildings")
@@ -318,7 +322,6 @@ local function findRefill()
                 if hanger then table.insert(containersToScan, hanger) end
             end
         end
-
         local props = safeGet(u, "Props")
         if props then
             local hq = safeGet(props, "HQ")
@@ -331,31 +334,25 @@ local function findRefill()
                 end
             end
         end
-
         local reloads = safeGet(u, "Reloads")
         if reloads then table.insert(containersToScan, reloads) end
     end
-
     local c = workspace:FindFirstChild("Climbable")
     if c then
         local utgard = safeGet(c, "Utgard")
         if utgard then table.insert(containersToScan, utgard) end
-
         local walls = safeGet(c, "_Walls")
         if walls then
             local gate = safeGet(walls, "Gate")
             if gate then table.insert(containersToScan, gate) end
         end
     end
-
     for _, container in pairs(containersToScan) do
         local direct = safeGet(container, "Refill")
         if direct and direct:IsA("BasePart") then return direct end
-
         for _, child in pairs(container:GetChildren()) do
             local r1 = safeGet(child, "Refill")
             if r1 and r1:IsA("BasePart") then return r1 end
-
             local gt = safeGet(child, "GasTanks")
             if gt then
                 local r2 = safeGet(gt, "Refill")
@@ -363,16 +360,149 @@ local function findRefill()
             end
         end
     end
-
     for _, container in pairs(containersToScan) do
         for _, d in pairs(container:GetDescendants()) do
-            if d.Name == "Refill" and d:IsA("BasePart") then
-                return d
-            end
+            if d.Name == "Refill" and d:IsA("BasePart") then return d end
         end
     end
-
     return nil
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██               AUTO FARM - HELPERS INTERNES                 ██
+-- ████████████████████████████████████████████████████████████████
+
+-- Stats de session (réinitialisées à chaque démarrage de farm)
+local farmSession = {
+    titansTues = 0,
+    swings = 0,
+    startTime = 0,
+    active = false,
+    currentTarget = nil,
+    lastSwingTick = 0,
+    lastHumanizeTick = 0,
+    paused = false,
+}
+
+-- Label de statut mis à jour dynamiquement depuis la page GUI
+local farmStatusLabel = nil
+local farmKillsLabel = nil
+
+local function getNearestNape()
+    local pos = getPlayerPosition()
+    if not pos then return nil, nil, math.huge end
+
+    local nearest, nearestNape, nearestDist = nil, nil, math.huge
+    local tf = workspace:FindFirstChild("Titans")
+    if not tf then return nil, nil, math.huge end
+
+    for _, titan in pairs(tf:GetChildren()) do
+        pcall(function()
+            local hb = titan:FindFirstChild("Hitboxes")
+            local hit = hb and hb:FindFirstChild("Hit")
+            local nape = hit and hit:FindFirstChild("Nape")
+            if nape and nape:IsA("BasePart") then
+                local d = (nape.Position - pos).Magnitude
+                if d < nearestDist and d <= Settings.FarmMaxDistance then
+                    nearestDist = d
+                    nearest = titan
+                    nearestNape = nape
+                end
+            end
+        end)
+    end
+    return nearest, nearestNape, nearestDist
+end
+
+local function farmSendSwing()
+    -- Clic gauche centré sur l'écran (là où le joueur vise)
+    local cam = workspace.CurrentCamera
+    local vp = cam.ViewportSize
+    local cx, cy = vp.X / 2, vp.Y / 2
+    pcall(function()
+        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+        task.wait(0.06)
+        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+    end)
+end
+
+-- Mouvements humains : A, E, W en AZERTY
+local HUMANIZE_KEYS = {
+    Enum.KeyCode.A,  -- strafe gauche AZERTY
+    Enum.KeyCode.E,  -- strafe droit AZERTY
+    Enum.KeyCode.W,  -- avancer
+}
+
+local function farmDoHumanizeMove()
+    -- Choisir une touche aléatoire parmi A/E/W
+    local key = HUMANIZE_KEYS[math.random(#HUMANIZE_KEYS)]
+    local holdTime = math.random(8, 20) / 100 -- 0.08s à 0.20s
+
+    pcall(function()
+        if hasKeypress then
+            keypress(key)
+            task.wait(holdTime)
+            keyrelease(key)
+        else
+            VirtualInputManager:SendKeyEvent(true, key, false, game)
+            task.wait(holdTime)
+            VirtualInputManager:SendKeyEvent(false, key, false, game)
+        end
+    end)
+end
+
+local function farmAimAtNape(nape)
+    -- Rotation fluide de la caméra vers la nape
+    -- AimSmooth : 1 = très lent (lerp 0.05), 10 = quasi instant (lerp 0.5)
+    local cam = workspace.CurrentCamera
+    local smooth = math.clamp(Settings.FarmAimSmooth, 1, 10)
+    local lerpAlpha = smooth * 0.045  -- 1→0.045, 10→0.45
+
+    pcall(function()
+        local targetPos = nape.Position
+        local camPos = cam.CFrame.Position
+        local direction = (targetPos - camPos).Unit
+        local targetCF = CFrame.lookAt(camPos, camPos + direction)
+        cam.CFrame = cam.CFrame:Lerp(targetCF, lerpAlpha)
+    end)
+end
+
+local function farmIsAimedAtNape(nape)
+    -- Vérifie si la caméra pointe vers la nape (dot product)
+    local cam = workspace.CurrentCamera
+    local ok = false
+    pcall(function()
+        local dir = (nape.Position - cam.CFrame.Position).Unit
+        local look = cam.CFrame.LookVector
+        ok = look:Dot(dir) > 0.82  -- ~34° de tolérance
+    end)
+    return ok
+end
+
+local function updateFarmStatusLabel(txt, color)
+    if farmStatusLabel then
+        pcall(function()
+            farmStatusLabel.Text = txt
+            farmStatusLabel.TextColor3 = color or Color3.fromRGB(200, 200, 220)
+        end)
+    end
+end
+
+local function updateFarmKillsLabel()
+    if farmKillsLabel then
+        pcall(function()
+            local elapsed = farmSession.active and math.floor(tick() - farmSession.startTime) or 0
+            local mins = math.floor(elapsed / 60)
+            local secs = elapsed % 60
+            farmKillsLabel.Text = string.format(
+                "⚔️  Titans tués : %d / %d\n⏱️  Session : %02d:%02d\n🎯  Swings : %d",
+                farmSession.titansTues,
+                Settings.FarmMaxTitans,
+                mins, secs,
+                farmSession.swings
+            )
+        end)
+    end
 end
 
 -- ████████████████████████████████████████████████████████████████
@@ -435,7 +565,7 @@ LogoTitle.TextColor3 = Color3.fromRGB(240, 240, 250); LogoTitle.TextSize = 20
 LogoTitle.Font = Enum.Font.GothamBold; LogoTitle.TextXAlignment = Enum.TextXAlignment.Left
 local LogoSub = Instance.new("TextLabel", LogoFrame)
 LogoSub.Size = UDim2.new(1, -50, 0, 16); LogoSub.Position = UDim2.new(0, 50, 0, 24)
-LogoSub.BackgroundTransparency = 1; LogoSub.Text = "AOT:R • FREE"
+LogoSub.BackgroundTransparency = 1; LogoSub.Text = "AOT:R • v1.1"
 LogoSub.TextColor3 = Color3.fromRGB(130, 110, 200); LogoSub.TextSize = 11
 LogoSub.Font = Enum.Font.GothamMedium; LogoSub.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -490,7 +620,7 @@ local function createTab(name, icon, order)
 end
 
 createTab("Main", "📋", 1)
-createTab("Raids", "⚔️", 2)
+createTab("Auto Farm", "⚔️", 2)   -- ← Remplace "Raids"
 createTab("Stats", "📊", 3)
 createTab("Webhook", "🔗", 4)
 createTab("Visual", "👁️", 5)
@@ -607,7 +737,6 @@ local function makeToggle(parent, label, posY, settingKey, callback)
     local cc = Instance.new("UICorner", circle); cc.CornerRadius = UDim.new(1, 0)
     local clk = Instance.new("TextButton", row)
     clk.Size = UDim2.new(1, 0, 1, 0); clk.BackgroundTransparency = 1; clk.Text = ""
-
     local function setState(sv, fireCb)
         Settings[settingKey] = sv
         local ti = TweenInfo.new(0.22, Enum.EasingStyle.Quart)
@@ -656,7 +785,6 @@ local function makeSlider(parent, label, posY, minVal, maxVal, settingKey, callb
     valBox.Text = tostring(d); valBox.TextColor3 = Color3.fromRGB(230, 230, 245)
     valBox.TextSize = 12; valBox.Font = Enum.Font.GothamMedium
     local vbc = Instance.new("UICorner", valBox); vbc.CornerRadius = UDim.new(0, 6)
-
     local dragging = false
     local function updFromX(x)
         local rel = math.clamp((x - barBG.AbsolutePosition.X) / barBG.AbsoluteSize.X, 0, 1)
@@ -707,14 +835,12 @@ local function makeColorPicker(parent, label, posY, settingKey, callback)
     local pc = Instance.new("UICorner", preview); pc.CornerRadius = UDim.new(0, 5)
     local ps = Instance.new("UIStroke", preview)
     ps.Color = Color3.fromRGB(80, 70, 120); ps.Thickness = 1
-
     local function update()
         local col = Color3.fromRGB(r, g, b)
         preview.BackgroundColor3 = col
         Settings[settingKey] = {r, g, b}
         if callback then callback(col) end
     end
-
     local function mini(name, posYY, val, color, setter)
         local sr = Instance.new("Frame", row)
         sr.Size = UDim2.new(1, 0, 0, 22); sr.Position = UDim2.new(0, 0, 0, posYY)
@@ -768,27 +894,17 @@ end
 
 -- ===== MAIN =====
 local MainPage = makePage("Main")
-
--- Section Nape (taille fixée à 440 pour avoir de la place pour tous les sliders)
 local NapeSection = makeSection(MainPage, "Nape Extender", 0, 0, 350, 440)
-
 makeToggle(NapeSection, "Activer Nape Extender", 50, "NapeExtenderEnabled", function(s)
     Settings.NapeResize = s; Settings.NapeVisible = s
     if toggleSetters.NapeResize then toggleSetters.NapeResize(s, false) end
     if toggleSetters.NapeVisible then toggleSetters.NapeVisible(s, false) end
 end)
-
--- Slider Taille Nape
 makeSlider(NapeSection, "Taille Nape", 95, 10, 200, "NapeSizeValue", function(val)
     logDebug("Nape Size: " .. val)
 end)
-
--- ✅ BUG 2 CORRIGÉ : napeSection → NapeSection (majuscule)
--- Slider Transparence Nape (0 = opaque, 100 = invisible)
 makeSlider(NapeSection, "Transparence", 140, 0, 100, "NapeTransparency", function(val)
-    -- NapeTransparency stocké directement comme 0-100, converti à l'application
     logInfo("Nape Transparence: " .. val .. "%")
-    -- Appliquer immédiatement à tous les titans existants
     pcall(function()
         local titans = workspace:FindFirstChild("Titans")
         if not titans then return end
@@ -802,7 +918,6 @@ makeSlider(NapeSection, "Transparence", 140, 0, 100, "NapeTransparency", functio
         end
     end)
 end)
-
 makeToggle(NapeSection, "Nape Visible", 185, "NapeVisible")
 makeToggle(NapeSection, "Highlight Titans", 225, "HighlightEnabled")
 makeToggle(NapeSection, "ESP Activé", 265, "ESPEnabled", function(s)
@@ -819,7 +934,6 @@ makeToggle(NapeSection, "ESP Activé", 265, "ESPEnabled", function(s)
         end
     end
 end)
-
 makeColorPicker(NapeSection, "Couleur Nape", 305, "NapeColor")
 
 local DiversSection = makeSection(MainPage, "Divers", 365, 0, 205, 440)
@@ -832,7 +946,153 @@ makeToggle(DiversSection, "Remove Dmg Text", 240, "RemoveDmgText")
 makeToggle(DiversSection, "Auto Hide UI (15s)", 278, "AutoHideUI")
 makeToggle(DiversSection, "Noclip", 316, "Noclip")
 
--- ===== PLACEHOLDERS =====
+-- ████████████████████████████████████████████████████████████████
+-- ██                    PAGE AUTO FARM                          ██
+-- ████████████████████████████████████████████████████████████████
+
+local FarmPage = makePage("Auto Farm")
+
+-- Section gauche : Contrôles
+local FarmControlSection = makeSection(FarmPage, "⚔️ Smart Auto Farm", 0, 0, 340, 440)
+
+-- Bouton ON/OFF principal (gros, bien visible)
+local FarmToggleBtn = Instance.new("TextButton", FarmControlSection)
+FarmToggleBtn.Size = UDim2.new(1, -30, 0, 48)
+FarmToggleBtn.Position = UDim2.new(0, 15, 0, 50)
+FarmToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+FarmToggleBtn.BorderSizePixel = 0
+FarmToggleBtn.Text = "▶  DÉMARRER AUTO FARM"
+FarmToggleBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+FarmToggleBtn.TextSize = 14
+FarmToggleBtn.Font = Enum.Font.GothamBold
+local ftbc = Instance.new("UICorner", FarmToggleBtn); ftbc.CornerRadius = UDim.new(0, 10)
+local ftbs = Instance.new("UIStroke", FarmToggleBtn)
+ftbs.Color = Color3.fromRGB(80, 60, 120); ftbs.Thickness = 1.5
+
+local function updateFarmToggleBtn()
+    if Settings.AutoFarmEnabled then
+        FarmToggleBtn.BackgroundColor3 = Color3.fromRGB(30, 120, 60)
+        FarmToggleBtn.Text = "⏹  ARRÊTER AUTO FARM"
+        ftbs.Color = Color3.fromRGB(60, 200, 100)
+    else
+        FarmToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 65)
+        FarmToggleBtn.Text = "▶  DÉMARRER AUTO FARM"
+        ftbs.Color = Color3.fromRGB(80, 60, 120)
+    end
+end
+
+-- Sliders configuration
+makeSlider(FarmControlSection, "Portée max", 115, 30, 250, "FarmMaxDistance", function(val)
+    logDebug("[AutoFarm] FarmMaxDistance = " .. val)
+end)
+
+makeSlider(FarmControlSection, "Délai swing (x10ms)", 160, 20, 80, "FarmSwingDelay", function(val)
+    logDebug("[AutoFarm] FarmSwingDelay = " .. val)
+end)
+
+makeSlider(FarmControlSection, "Max titans/session", 205, 10, 60, "FarmMaxTitans", function(val)
+    logDebug("[AutoFarm] FarmMaxTitans = " .. val)
+end)
+
+makeSlider(FarmControlSection, "Fluidité aim (1-10)", 250, 1, 10, "FarmAimSmooth", function(val)
+    logDebug("[AutoFarm] FarmAimSmooth = " .. val)
+end)
+
+makeToggle(FarmControlSection, "Mouvements humains", 298, "FarmHumanize")
+
+makeSlider(FarmControlSection, "Chance mouvement %", 340, 5, 60, "FarmHumanizeChance", function(val)
+    logDebug("[AutoFarm] FarmHumanizeChance = " .. val)
+end)
+
+-- Section droite : Statut en temps réel
+local FarmStatusSection = makeSection(FarmPage, "📊 Statut Session", 355, 0, 215, 440)
+
+-- Label statut principal
+farmStatusLabel = Instance.new("TextLabel", FarmStatusSection)
+farmStatusLabel.Size = UDim2.new(1, -20, 0, 30)
+farmStatusLabel.Position = UDim2.new(0, 10, 0, 50)
+farmStatusLabel.BackgroundTransparency = 1
+farmStatusLabel.Text = "⏸  En attente..."
+farmStatusLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
+farmStatusLabel.TextSize = 13
+farmStatusLabel.Font = Enum.Font.GothamMedium
+farmStatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+farmStatusLabel.TextWrapped = true
+
+-- Label kills / session
+farmKillsLabel = Instance.new("TextLabel", FarmStatusSection)
+farmKillsLabel.Size = UDim2.new(1, -20, 0, 80)
+farmKillsLabel.Position = UDim2.new(0, 10, 0, 90)
+farmKillsLabel.BackgroundTransparency = 1
+farmKillsLabel.Text = "⚔️  Titans tués : 0\n⏱️  Session : 00:00\n🎯  Swings : 0"
+farmKillsLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+farmKillsLabel.TextSize = 12
+farmKillsLabel.Font = Enum.Font.GothamMedium
+farmKillsLabel.TextXAlignment = Enum.TextXAlignment.Left
+farmKillsLabel.TextYAlignment = Enum.TextYAlignment.Top
+farmKillsLabel.TextWrapped = true
+
+-- Séparateur
+local farmSep = Instance.new("Frame", FarmStatusSection)
+farmSep.Size = UDim2.new(1, -20, 0, 1); farmSep.Position = UDim2.new(0, 10, 0, 180)
+farmSep.BackgroundColor3 = Color3.fromRGB(60, 50, 90); farmSep.BorderSizePixel = 0
+
+-- Info box avertissement
+local FarmWarning = Instance.new("Frame", FarmStatusSection)
+FarmWarning.Size = UDim2.new(1, -20, 0, 100)
+FarmWarning.Position = UDim2.new(0, 10, 0, 195)
+FarmWarning.BackgroundColor3 = Color3.fromRGB(50, 35, 15)
+FarmWarning.BorderSizePixel = 0
+local fwc = Instance.new("UICorner", FarmWarning); fwc.CornerRadius = UDim.new(0, 8)
+local fws = Instance.new("UIStroke", FarmWarning)
+fws.Color = Color3.fromRGB(200, 140, 40); fws.Thickness = 1
+local FarmWarningTxt = Instance.new("TextLabel", FarmWarning)
+FarmWarningTxt.Size = UDim2.new(1, -16, 1, -16); FarmWarningTxt.Position = UDim2.new(0, 8, 0, 8)
+FarmWarningTxt.BackgroundTransparency = 1
+FarmWarningTxt.Text = "⚠️ Mode Semi-AFK\n\nLe script simule des mouvements naturels (A/E/W). Reste dans les limites du Max Titans/session pour éviter la détection."
+FarmWarningTxt.TextColor3 = Color3.fromRGB(220, 170, 80)
+FarmWarningTxt.TextSize = 11
+FarmWarningTxt.Font = Enum.Font.Gotham
+FarmWarningTxt.TextXAlignment = Enum.TextXAlignment.Left
+FarmWarningTxt.TextYAlignment = Enum.TextYAlignment.Top
+FarmWarningTxt.TextWrapped = true
+
+-- Info titan actuel
+local farmTargetLabel = Instance.new("TextLabel", FarmStatusSection)
+farmTargetLabel.Size = UDim2.new(1, -20, 0, 50)
+farmTargetLabel.Position = UDim2.new(0, 10, 0, 310)
+farmTargetLabel.BackgroundTransparency = 1
+farmTargetLabel.Text = "🎯 Cible : Aucune"
+farmTargetLabel.TextColor3 = Color3.fromRGB(140, 200, 140)
+farmTargetLabel.TextSize = 11
+farmTargetLabel.Font = Enum.Font.GothamMedium
+farmTargetLabel.TextXAlignment = Enum.TextXAlignment.Left
+farmTargetLabel.TextWrapped = true
+
+-- Connexion bouton toggle
+FarmToggleBtn.MouseButton1Click:Connect(function()
+    Settings.AutoFarmEnabled = not Settings.AutoFarmEnabled
+    saveSettings()
+    updateFarmToggleBtn()
+    if Settings.AutoFarmEnabled then
+        -- Reset stats session
+        farmSession.titansTues = 0
+        farmSession.swings = 0
+        farmSession.startTime = tick()
+        farmSession.active = true
+        farmSession.paused = false
+        updateFarmStatusLabel("🟢 Actif - Recherche titans...", Color3.fromRGB(100, 220, 100))
+        logSuccess("[AutoFarm] Session démarrée - Max: " .. Settings.FarmMaxTitans .. " titans")
+    else
+        farmSession.active = false
+        updateFarmStatusLabel("⏸  Arrêté manuellement", Color3.fromRGB(150, 150, 170))
+        pcall(function() farmTargetLabel.Text = "🎯 Cible : Aucune" end)
+        logInfo("[AutoFarm] Session arrêtée manuellement")
+    end
+    updateFarmKillsLabel()
+end)
+
+-- ===== PLACEHOLDERS (Stats, Webhook, Visual, Teleport) =====
 local function placeholderPage(name)
     local p = makePage(name)
     local s = makeSection(p, name, 0, 0, 580, 420)
@@ -842,7 +1102,6 @@ local function placeholderPage(name)
     txt.TextColor3 = Color3.fromRGB(150, 150, 170); txt.TextSize = 14
     txt.Font = Enum.Font.Gotham; txt.TextXAlignment = Enum.TextXAlignment.Left
 end
-placeholderPage("Raids")
 placeholderPage("Stats")
 placeholderPage("Webhook")
 placeholderPage("Visual")
@@ -853,7 +1112,6 @@ local ParamPage = makePage("Paramètres")
 local ParamSection = makeSection(ParamPage, "Paramètres Généraux", 0, 0, 580, 420)
 makeToggle(ParamSection, "Souris Personnalisée (toujours visible)", 50, "CustomCursorAlways")
 
--- Keybind
 local KeybindRow = Instance.new("Frame", ParamSection)
 KeybindRow.Size = UDim2.new(1, -30, 0, 36); KeybindRow.Position = UDim2.new(0, 15, 0, 92)
 KeybindRow.BackgroundTransparency = 1
@@ -878,10 +1136,8 @@ KbBtn.MouseButton1Click:Connect(function()
     KbBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
 end)
 
--- Offset Retry slider
 makeSlider(ParamSection, "Retry Offset Y", 140, 0, 200, "RetryOffsetY")
 
--- Auto Attach toggle (✅ CORRIGÉ : déplacé ici dans l'ordre logique)
 makeToggle(ParamSection, "Auto Attach (au teleport)", 188, "AutoAttach", function(state)
     if state then enableAutoAttach() else disableAutoAttach() end
 end)
@@ -906,7 +1162,7 @@ local ibc = Instance.new("UICorner", InfoBox); ibc.CornerRadius = UDim.new(0, 8)
 local InfoTxt = Instance.new("TextLabel", InfoBox)
 InfoTxt.Size = UDim2.new(1, -20, 1, -20); InfoTxt.Position = UDim2.new(0, 10, 0, 10)
 InfoTxt.BackgroundTransparency = 1
-InfoTxt.Text = "ℹ️  Kyo v1.0 • Configs sauvegardées automatiquement"
+InfoTxt.Text = "ℹ️  Kyo v1.1 • Configs sauvegardées automatiquement"
 InfoTxt.TextColor3 = Color3.fromRGB(170, 170, 195); InfoTxt.TextSize = 12
 InfoTxt.Font = Enum.Font.Gotham; InfoTxt.TextXAlignment = Enum.TextXAlignment.Left
 InfoTxt.TextYAlignment = Enum.TextYAlignment.Top; InfoTxt.TextWrapped = true
@@ -1027,13 +1283,11 @@ makeDebugBtn("🖱️ Test Click Retry", 295, 92, 130, function()
     local cx = ap.X + as.X / 2
     local cy = ap.Y + as.Y / 2 + Settings.RetryOffsetY
     setDebug(string.format([[BOUTON RETRY :
-
 Nom        : %s
 AbsPos     : (%d, %d)
 AbsSize    : (%d, %d)
 Offset Y   : %d
 Click X,Y  : (%d, %d)
-
 Click simulé !]],
         retry.Name,
         math.floor(ap.X), math.floor(ap.Y),
@@ -1050,7 +1304,6 @@ end)
 
 makeDebugBtn("⚙️ Executor Info", 15, 134, 130, function()
     setDebug(string.format([[EXÉCUTEUR :
-
 keypress       : %s
 keyrelease     : %s
 writefile      : %s
@@ -1078,9 +1331,7 @@ Blades text : %s
 Blades cnt  : %s | offset: %s
 Gas text    : %s
 Gas %%       : %s | offset: %s
-
 Refill      : %s
-
 (re-clic pour stop)]],
                     tostring(h), tostring(mh),
                     tostring(s.bladesText),
@@ -1106,8 +1357,47 @@ makeDebugBtn("🧪 Test Refill TP", 295, 134, 130, function()
     setDebug(string.format([[REFILL TP :
 Refill position : %s
 Player position : %s
-✅ Refill TP au joueur !]],
-        tostring(r.Position), tostring(pos)))
+✅ Refill TP au joueur !]], tostring(r.Position), tostring(pos)))
+end)
+
+-- Bouton debug Auto Farm
+makeDebugBtn("⚔️ Farm Debug", 15, 176, 130, function()
+    local titan, nape, dist = getNearestNape()
+    if titan and nape then
+        local aimed = farmIsAimedAtNape(nape)
+        setDebug(string.format([[AUTO FARM DEBUG :
+
+Titan le plus proche : %s
+Distance nape        : %.1f studs
+Portée configurée    : %d studs
+Caméra bien visée    : %s
+
+Session active       : %s
+Titans tués          : %d / %d
+Swings envoyés       : %d
+
+FarmSwingDelay       : %dms
+FarmAimSmooth        : %d
+FarmHumanize         : %s (%d%%)]],
+            titan.Name, dist, Settings.FarmMaxDistance,
+            tostring(aimed),
+            tostring(farmSession.active),
+            farmSession.titansTues, Settings.FarmMaxTitans,
+            farmSession.swings,
+            Settings.FarmSwingDelay * 10,
+            Settings.FarmAimSmooth,
+            tostring(Settings.FarmHumanize), Settings.FarmHumanizeChance))
+    else
+        setDebug(string.format([[AUTO FARM DEBUG :
+
+❌ Aucun titan dans la portée (%d studs)
+
+Session active : %s
+Titans tués    : %d / %d]],
+            Settings.FarmMaxDistance,
+            tostring(farmSession.active),
+            farmSession.titansTues, Settings.FarmMaxTitans))
+    end
 end)
 
 -- ===== SELECT TAB =====
@@ -1302,27 +1592,21 @@ local function isBigTitan(titan)
     return hs.X >= BIG_TITAN_HEAD_THRESHOLD.X and hs.Y >= BIG_TITAN_HEAD_THRESHOLD.Y and hs.Z >= BIG_TITAN_HEAD_THRESHOLD.Z
 end
 
--- ✅ BUG 3 CORRIGÉ : accolade end) manquante dans applyNape
 local function applyNape(titan)
     pcall(function()
         local hb = titan:FindFirstChild("Hitboxes"); if not hb then return end
         local h = hb:FindFirstChild("Hit"); if not h then return end
         local nape = h:FindFirstChild("Nape"); if not nape then return end
-
         if Settings.NapeVisible then
             nape.Material = Enum.Material.Neon
             local nc = Settings.NapeColor
             nape.Color = Color3.fromRGB(nc[1], nc[2], nc[3])
         end
-
-        -- Transparence : le slider stocke 0-100, on convertit en 0-1
-        -- Si NapeVisible est false → force transparent
         if not Settings.NapeVisible then
             nape.Transparency = 1
         else
             nape.Transparency = (Settings.NapeTransparency or 0) / 100
         end
-
         if Settings.NapeResize then
             if isBigTitan(titan) then
                 nape.Size = NAPE_SIZE_BIG
@@ -1502,13 +1786,9 @@ end)
 task.spawn(function()
     logInfo("[AutoEscape] Thread démarré")
     local escapeActive = false
-
     while _G.KYO_RUNNING do
         task.wait(0.1)
-
         if not Settings.AutoEscape or escapeActive then continue end
-
-        -- ✅ BUG 6 CORRIGÉ : escapeActive géré proprement en dehors du pcall
         local ok, err = pcall(function()
             local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
             if not playerGui then return end
@@ -1516,8 +1796,6 @@ task.spawn(function()
             if not interface then return end
             local buttonsFrame = interface:FindFirstChild("Buttons")
             if not buttonsFrame then return end
-
-            -- Collecter les boutons visibles (exclure "Button")
             local activeButtons = {}
             for _, child in pairs(buttonsFrame:GetChildren()) do
                 if child:IsA("GuiObject") and child.Visible and child.Name ~= "Button" then
@@ -1532,34 +1810,21 @@ task.spawn(function()
                     end
                 end
             end
-
             if #activeButtons == 0 then return end
-
-            -- Trier gauche → droite
             table.sort(activeButtons, function(a, b) return a.posX < b.posX end)
-
             escapeActive = true
             logDebug("[AutoEscape] " .. #activeButtons .. " boutons, séquence lancée")
-
             for i, btn in ipairs(activeButtons) do
-                -- Vérifier que le bouton est toujours là
                 local frame = buttonsFrame:FindFirstChild(btn.name)
                 if frame and frame.Visible then
                     pressKey(btn.keyCode)
                     logDebug("[AutoEscape] " .. btn.name .. " (" .. i .. "/" .. #activeButtons .. ")")
-                    if i < #activeButtons then
-                        task.wait(0.15)
-                    end
+                    if i < #activeButtons then task.wait(0.15) end
                 end
             end
-
             task.wait(0.3)
         end)
-
-        -- ✅ Libérer le verrou TOUJOURS, que pcall réussisse ou non
-        if not ok then
-            logError("[AutoEscape] Erreur: " .. tostring(err))
-        end
+        if not ok then logError("[AutoEscape] Erreur: " .. tostring(err)) end
         escapeActive = false
     end
 end)
@@ -1626,26 +1891,17 @@ task.spawn(function()
                 local s = getStats()
                 local needsReload = false
                 local reason = ""
-
                 if s.bladesText then
                     if s.bladesCount ~= nil then
-                        if s.bladesCount <= 0 then
-                            needsReload = true
-                            reason = "count=0"
-                        end
+                        if s.bladesCount <= 0 then needsReload = true; reason = "count=0" end
                     else
-                        if string.match(s.bladesText, "^%s*0%s*/") then
-                            needsReload = true
-                            reason = "txt match 0/"
-                        end
+                        if string.match(s.bladesText, "^%s*0%s*/") then needsReload = true; reason = "txt match 0/" end
                     end
                 else
                     if s.bladesOffset and s.bladesOffset <= -0.1 then
-                        needsReload = true
-                        reason = "offset=" .. tostring(s.bladesOffset)
+                        needsReload = true; reason = "offset=" .. tostring(s.bladesOffset)
                     end
                 end
-
                 if needsReload then
                     local now = tick()
                     if now - lastReload > 2.5 then
@@ -1670,124 +1926,66 @@ local isRefilling = false
 
 task.spawn(function()
     logInfo("[AutoRefill] Thread démarré")
-
     while _G.KYO_RUNNING do
         task.wait(0.4)
-
         if not Settings.AutoRefill then
             if refillAlertVisible then hideRefillAlert() end
             isRefilling = false
             continue
         end
-
-        if isRefilling then
-            logDebug("[AutoRefill] Cycle en cours, on attend...")
-            continue
-        end
-
+        if isRefilling then continue end
         pcall(function()
             local s = getStats()
-
             refillLogCount = refillLogCount + 1
             if refillLogCount % 5 == 0 then
-                logDebug(string.format(
-                    "[AutoRefill] RAW: gasText='%s' gasPercent=%s | bladesText='%s' bladesCount=%s",
-                    tostring(s.gasText), tostring(s.gasPercent),
-                    tostring(s.bladesText), tostring(s.bladesCount)
-                ))
+                logDebug(string.format("[AutoRefill] RAW: gasText='%s' gasPercent=%s | bladesText='%s' bladesCount=%s",
+                    tostring(s.gasText), tostring(s.gasPercent), tostring(s.bladesText), tostring(s.bladesCount)))
             end
-
-            -- Conditions blades
             local bladesEmpty = false
-            if s.bladesCount ~= nil and s.bladesCount == 0 then
+            if s.bladesCount ~= nil and s.bladesCount == 0 then bladesEmpty = true end
+            if s.bladesText and (string.find(s.bladesText, "^0 /") or string.find(s.bladesText, "^0/")) then
                 bladesEmpty = true
             end
-            if s.bladesText and (
-                string.find(s.bladesText, "^0 /") or
-                string.find(s.bladesText, "^0/")
-            ) then
-                bladesEmpty = true
-            end
-
-            -- Conditions gas
             local gasEmpty = false
             if s.gasText then
                 local cleaned = tostring(s.gasText):gsub("%%", ""):gsub("%s+", "")
                 local n = tonumber(cleaned)
-                if (n ~= nil and n <= 0) or cleaned == "0" then
-                    gasEmpty = true
-                end
+                if (n ~= nil and n <= 0) or cleaned == "0" then gasEmpty = true end
             end
-            if s.gasPercent ~= nil and s.gasPercent <= 0 then
-                gasEmpty = true
-            end
-
+            if s.gasPercent ~= nil and s.gasPercent <= 0 then gasEmpty = true end
             local needsRefill = bladesEmpty or gasEmpty
-
             if refillLogCount % 5 == 0 then
-                logDebug(string.format(
-                    "[AutoRefill] EVAL: bladesEmpty=%s gasEmpty=%s → needs=%s",
-                    tostring(bladesEmpty), tostring(gasEmpty), tostring(needsRefill)
-                ))
+                logDebug(string.format("[AutoRefill] EVAL: bladesEmpty=%s gasEmpty=%s → needs=%s",
+                    tostring(bladesEmpty), tostring(gasEmpty), tostring(needsRefill)))
             end
-
             if not needsRefill then
                 refillNoNeedCount = refillNoNeedCount + 1
-                if refillNoNeedCount >= 6 and refillAlertVisible then
-                    hideRefillAlert()
-                end
+                if refillNoNeedCount >= 6 and refillAlertVisible then hideRefillAlert() end
                 return
             end
-
             refillNoNeedCount = 0
-            logInfo("[AutoRefill] ✅ Besoin détecté ! Lancement du cycle...")
-
+            logInfo("[AutoRefill] ✅ Besoin détecté !")
             isRefilling = true
             task.spawn(function()
                 local success = pcall(function()
                     local r = findRefill()
-                    if not r then
-                        logError("[AutoRefill] findRefill() retourne nil !")
-                        return
-                    end
-                    logSuccess("[AutoRefill] Part trouvée: " .. r:GetFullName())
-
+                    if not r then logError("[AutoRefill] findRefill() retourne nil !"); return end
                     local pos = getPlayerPosition()
-                    if not pos then
-                        logError("[AutoRefill] getPlayerPosition() retourne nil !")
-                        return
-                    end
-                    logSuccess("[AutoRefill] Position joueur: " .. tostring(pos))
-
+                    if not pos then logError("[AutoRefill] getPlayerPosition() retourne nil !"); return end
                     showRefillAlert()
-
                     if not r.Anchored then r.Anchored = true end
                     r.CFrame = CFrame.new(pos)
                     logSuccess(string.format("[AutoRefill] 🚀 TP DONE → Part à %s", tostring(r.Position)))
-
-                    -- ✅ Attente cruciale avant appui R
                     task.wait(0.3)
-
-                    local distCheck = (r.Position - pos).Magnitude
-                    logDebug(string.format("[AutoRefill] Distance part↔joueur: %.2f", distCheck))
-
                     logInfo("[AutoRefill] ⌨️  Appui R")
                     pressKey(Enum.KeyCode.R)
-
                     task.wait(0.5)
-
                     logInfo("[AutoRefill] ⌨️  Appui R (confirmation)")
                     pressKey(Enum.KeyCode.R)
-
                     task.wait(1.5)
                     logSuccess("[AutoRefill] ✅ Cycle terminé")
                 end)
-
-                if not success then
-                    logError("[AutoRefill] Erreur dans le cycle")
-                end
-
-                -- ✅ Toujours libérer le verrou
+                if not success then logError("[AutoRefill] Erreur dans le cycle") end
                 isRefilling = false
             end)
         end)
@@ -1838,6 +2036,106 @@ task.spawn(function()
         task.wait(1)
     end
 end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                    AUTO FARM LOOP                          ██
+-- ████████████████████████████████████████████████████████████████
+
+task.spawn(function()
+    logInfo("[AutoFarm] Thread démarré")
+
+    while _G.KYO_RUNNING do
+        task.wait(0.016) -- ~60fps
+
+        if not Settings.AutoFarmEnabled then continue end
+
+        pcall(function()
+            local titan, nape, dist = getNearestNape()
+
+            -- Mise à jour label cible
+            pcall(function()
+                if titan then
+                    farmTargetLabel.Text = string.format("🎯 Cible : %s (%.0f studs)", titan.Name, dist)
+                else
+                    farmTargetLabel.Text = "🎯 Cible : Aucune dans la portée"
+                end
+            end)
+
+            -- Pas de titan → mouvements humains d'exploration
+            if not titan or not nape then
+                if Settings.FarmHumanize and math.random(100) < 8 then
+                    task.spawn(function()
+                        farmDoHumanizeMove()
+                    end)
+                end
+                updateFarmStatusLabel("🔍 Recherche titan...", Color3.fromRGB(150, 150, 200))
+                return
+            end
+
+            updateFarmStatusLabel(
+                string.format("🟢 Titan trouvé (%.0f studs)", dist),
+                Color3.fromRGB(100, 220, 100)
+            )
+
+            -- Viser la nape progressivement
+            farmAimAtNape(nape)
+
+            -- Vérifier si on est bien visé et si le swing est prêt
+            local swingDelaySeconds = Settings.FarmSwingDelay / 100
+            local now = tick()
+            local canSwing = (now - farmSession.lastSwingTick) >= swingDelaySeconds
+
+            if canSwing and farmIsAimedAtNape(nape) then
+                farmSession.lastSwingTick = now
+                farmSession.swings = farmSession.swings + 1
+
+                farmSendSwing()
+                logDebug(string.format("[AutoFarm] Swing #%d → %s (%.1f studs)",
+                    farmSession.swings, titan.Name, dist))
+
+                -- Mouvement humain après swing (probabiliste)
+                if Settings.FarmHumanize and math.random(100) < Settings.FarmHumanizeChance then
+                    task.spawn(function()
+                        task.wait(math.random(5, 15) / 100) -- 50-150ms avant le mouvement
+                        farmDoHumanizeMove()
+                    end)
+                end
+
+                -- Pause aléatoire rare (simule hésitation humaine)
+                if math.random(100) < 12 then
+                    task.wait(math.random(20, 60) / 100)
+                end
+            end
+
+            updateFarmKillsLabel()
+        end)
+
+        -- Vérifier limite de session
+        if Settings.AutoFarmEnabled and farmSession.titansTues >= Settings.FarmMaxTitans then
+            Settings.AutoFarmEnabled = false
+            farmSession.active = false
+            updateFarmToggleBtn()
+            updateFarmStatusLabel(
+                "🛑 Limite atteinte (" .. Settings.FarmMaxTitans .. " titans). Pause recommandée.",
+                Color3.fromRGB(220, 180, 50)
+            )
+            pcall(function() farmTargetLabel.Text = "🎯 Cible : Session terminée" end)
+            logWarning("[AutoFarm] Limite session atteinte → arrêt automatique")
+        end
+    end
+end)
+
+-- Mise à jour kills label toutes les secondes
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        task.wait(1)
+        if Settings.AutoFarmEnabled then
+            updateFarmKillsLabel()
+        end
+    end
+end)
+
+logSuccess("[AutoFarm] Loop initialisée")
 
 -- ████████████████████████████████████████████████████████████████
 -- ██               TOGGLE GUI (TOUCHE PERSONNALISABLE)          ██
@@ -1909,7 +2207,6 @@ local function disableAutoAttach()
     end
 end
 
--- Si activé au démarrage
 if Settings.AutoAttach then
     task.spawn(function()
         task.wait(1)
@@ -1921,7 +2218,6 @@ end
 -- ██                NOTIFICATION SYSTÈME                        ██
 -- ████████████████████████████████████████████████████████████████
 
--- ✅ BUG 4 CORRIGÉ : showNotif définie avant d'être appelée
 local NotifGui = Instance.new("ScreenGui")
 NotifGui.Name = "Kyo_Notif"; NotifGui.ResetOnSpawn = false
 NotifGui.IgnoreGuiInset = true; NotifGui.DisplayOrder = 9997; NotifGui.Parent = CoreGui
@@ -1945,12 +2241,8 @@ local function showNotif(text, color)
     lbl.TextColor3 = Color3.fromRGB(230, 230, 245); lbl.TextSize = 13
     lbl.Font = Enum.Font.GothamMedium; lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.TextWrapped = true
-
-    -- Slide in
     TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
         {Position = UDim2.new(1, -350, 1, -70)}):Play()
-
-    -- Slide out après 3s
     task.delay(3, function()
         local tw = TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
             {Position = UDim2.new(1, 10, 1, -70)})
@@ -1966,6 +2258,7 @@ end
 local function destroyAll()
     logInfo("Destruction Kyo...")
     _G.KYO_RUNNING = false
+    Settings.AutoFarmEnabled = false
     local tf = workspace:FindFirstChild("Titans")
     if tf then for _, t in pairs(tf:GetChildren()) do removeESP(t) end end
     trackedTitans = {}
@@ -1993,11 +2286,11 @@ DestroyButton.MouseButton1Click:Connect(destroyAll)
 -- ██                     BOOT FINAL                             ██
 -- ████████████████████████████████████████████████████████████████
 
-showNotif("✨ Kyo chargé ! Touche [" .. (Settings.ToggleKey or "P") .. "] pour toggle",
+showNotif("✨ Kyo v1.1 chargé ! [" .. (Settings.ToggleKey or "P") .. "] pour toggle",
     Color3.fromRGB(140, 90, 230))
 
 log("BOOT", "═══════════════════════════════════════════")
-logSuccess("Kyo chargé !")
+logSuccess("Kyo v1.1 chargé !")
 logInfo("Touche toggle: " .. (Settings.ToggleKey or "P"))
-logInfo("Va dans 🔧 Debug pour tester les fonctionnalités")
+logInfo("Auto Farm disponible dans l'onglet ⚔️")
 log("BOOT", "═══════════════════════════════════════════")
