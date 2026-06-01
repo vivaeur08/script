@@ -1865,7 +1865,7 @@ end)
 -- ██                  AUTO ATTACH SCRIPT                        ██
 -- ████████████████████████████████████████████████████████████████
 
-local SCRIPT_URL = "https://raw.githubusercontent.com/TON_USERNAME/TON_REPO/main/Kyo.lua"
+local SCRIPT_URL = "https://raw.githubusercontent.com/vivaeur08/script/refs/heads/main/AOTR/script"
 local AUTO_ATTACH_FILE = "Kyo_AutoAttach.lua"
 
 local autoAttachCode = [[
