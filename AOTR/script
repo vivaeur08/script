@@ -1,0 +1,2003 @@
+--[[
+╔══════════════════════════════════════════════════════════════════╗
+║                                                                  ║
+║   ██╗  ██╗██╗   ██╗ ██████╗                                      ║
+║   ██║ ██╔╝╚██╗ ██╔╝██╔═══██╗                                     ║
+║   █████╔╝  ╚████╔╝ ██║   ██║                                     ║
+║   ██╔═██╗   ╚██╔╝  ██║   ██║                                     ║
+║   ██║  ██╗   ██║   ╚██████╔╝                                     ║
+║   ╚═╝  ╚═╝   ╚═╝    ╚═════╝                                      ║
+║                                                                  ║
+║              AOT REVOLUTION - PREMIUM SCRIPT                     ║
+║                  v1.0 • Compatible Potassium                     ║
+╚══════════════════════════════════════════════════════════════════╝
+]]
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                    SYSTÈME DE LOGS                         ██
+-- ████████████████████████████████████████████████████████████████
+
+local LOG_PREFIX = "[Kyo]"
+local function log(cat, msg) print(string.format("%s [%s] %s", LOG_PREFIX, cat, tostring(msg))) end
+local function logSuccess(msg) log("✅ OK", msg) end
+local function logError(msg) log("❌ ERR", msg) end
+local function logWarning(msg) log("⚠️  WARN", msg) end
+local function logInfo(msg) log("ℹ️  INFO", msg) end
+local function logDebug(msg) log("🔧 DEBUG", msg) end
+
+log("BOOT", "═══════════════════════════════════════════")
+log("BOOT", "Kyo Script - Chargement en cours...")
+log("BOOT", "═══════════════════════════════════════════")
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       CLEANUP                              ██
+-- ████████████████████████████████████████████████████████████████
+
+if _G.KYO_RUNNING then
+    _G.KYO_RUNNING = false
+    logInfo("Ancien script détecté → cleanup")
+    task.wait(0.3)
+end
+
+local function cleanupGui(name)
+    local existing = game:GetService("CoreGui"):FindFirstChild(name)
+    if existing then existing:Destroy(); logInfo("GUI nettoyé: " .. name) end
+end
+
+cleanupGui("Kyo_MainGUI")
+cleanupGui("Kyo_MiniGUI")
+cleanupGui("Kyo_Cursor")
+cleanupGui("Kyo_Alerts")
+
+local function cleanOldESP()
+    local tf = workspace:FindFirstChild("Titans")
+    if not tf then return end
+    local n = 0
+    for _, t in pairs(tf:GetChildren()) do
+        for _, d in pairs(t:GetDescendants()) do
+            if d:IsA("Highlight") and d.Name == "Kyo_Highlight" then
+                d:Destroy(); n = n + 1
+            end
+        end
+    end
+    if n > 0 then logInfo("ESP nettoyés: " .. n) end
+end
+cleanOldESP()
+_G.KYO_RUNNING = true
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       SERVICES                             ██
+-- ████████████████████████████████████████████████████████████████
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local LocalPlayer = Players.LocalPlayer
+
+logSuccess("Services chargés")
+
+-- ████████████████████████████████████████████████████████████████
+-- ██              DÉTECTION FONCTIONS EXÉCUTEUR                 ██
+-- ████████████████████████████████████████████████████████████████
+
+local hasKeypress = (keypress ~= nil and keyrelease ~= nil)
+local hasFiles = (writefile ~= nil and readfile ~= nil and isfile ~= nil)
+
+logInfo("Exécuteur - keypress: " .. tostring(hasKeypress))
+logInfo("Exécuteur - writefile: " .. tostring(hasFiles))
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  CONFIG & SAUVEGARDE                       ██
+-- ████████████████████████████████████████████████████████████████
+
+local SAVE_FILE = "Kyo_AOTR_Config.json"
+
+local DefaultSettings = {
+    -- ESP / Nape
+    ESPEnabled = true,
+    NapeVisible = true,
+    NapeResize = true,
+    HighlightEnabled = true,
+    NapeColor = {255, 0, 0},
+    NapeSizeValue = 30,
+    NapeTransparency = 0,
+    NapeExtenderEnabled = true,
+    -- Divers
+    AntiInjuriesVisual = false,
+    AutoEscape = false,
+    AutoRetry = false,
+    AutoReloadBlades = false,
+    AutoRefill = false,
+    RemoveDmgText = false,
+    AutoHideUI = false,
+    Noclip = false,
+    AutoAttach = false,
+    -- Paramètres
+    CustomCursorAlways = false,
+    ToggleKey = "P",
+    -- Offset bouton Retry
+    RetryOffsetY = 75,
+}
+
+local Settings = {}
+for k, v in pairs(DefaultSettings) do
+    if type(v) == "table" then
+        Settings[k] = {}
+        for kk, vv in pairs(v) do Settings[k][kk] = vv end
+    else
+        Settings[k] = v
+    end
+end
+
+local function saveSettings()
+    if not hasFiles then return end
+    pcall(function() writefile(SAVE_FILE, HttpService:JSONEncode(Settings)) end)
+end
+
+local function loadSettings()
+    if not hasFiles then logWarning("Sauvegarde indispo"); return end
+    pcall(function()
+        if isfile(SAVE_FILE) then
+            local data = HttpService:JSONDecode(readfile(SAVE_FILE))
+            for k, v in pairs(data) do
+                if Settings[k] ~= nil then Settings[k] = v end
+            end
+            logSuccess("Config chargée depuis " .. SAVE_FILE)
+        else
+            logInfo("Pas de config, utilisation des défauts")
+        end
+    end)
+end
+loadSettings()
+
+-- Constantes
+local BIG_TITAN_HEAD_THRESHOLD = Vector3.new(165.34, 146.06, 141.89)
+local NAPE_SIZE_BIG = Vector3.new(100, 100, 100)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  HELPERS UNIVERSELS                        ██
+-- ████████████████████████████████████████████████████████████████
+
+local function pressKey(keyCode)
+    if hasKeypress then
+        local ok = pcall(function()
+            keypress(keyCode)
+            task.wait(0.08)
+            keyrelease(keyCode)
+        end)
+        if ok then return true end
+    end
+    pcall(function()
+        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+        task.wait(0.08)
+        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+    end)
+    return true
+end
+
+local function getCharacter()
+    local chars = workspace:FindFirstChild("Characters")
+    if not chars then return nil end
+    return chars:FindFirstChild(LocalPlayer.Name)
+end
+
+local function getHitbox()
+    local c = getCharacter()
+    return c and c:FindFirstChild("Hitbox")
+end
+
+local function getPlayerPosition()
+    local hb = getHitbox()
+    if hb then return hb.Position end
+    local c = LocalPlayer.Character
+    if c and c.PrimaryPart then return c.PrimaryPart.Position end
+    if c then
+        local hrp = c:FindFirstChild("HumanoidRootPart")
+        if hrp then return hrp.Position end
+    end
+    return nil
+end
+
+local function getPlayerHealth()
+    local c = getCharacter()
+    if c then
+        local hum = c:FindFirstChildOfClass("Humanoid") or c:FindFirstChild("Humanoid")
+        if hum then return hum.Health, hum.MaxHealth end
+    end
+    local c2 = LocalPlayer.Character
+    if c2 then
+        local hum = c2:FindFirstChildOfClass("Humanoid")
+        if hum then return hum.Health, hum.MaxHealth end
+    end
+    return nil, nil
+end
+
+local function getValueFromObject(obj, attrNames)
+    if not obj then return nil end
+    for _, name in ipairs(attrNames) do
+        local v = obj:GetAttribute(name)
+        if v ~= nil then return v end
+    end
+    if obj:IsA("TextLabel") or obj:IsA("TextButton") then
+        if obj.Text and obj.Text ~= "" then return obj.Text end
+    end
+    for _, c in pairs(obj:GetChildren()) do
+        if c:IsA("TextLabel") or c:IsA("TextButton") then
+            if c.Text and c.Text ~= "" then return c.Text end
+        end
+    end
+    return nil
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       GET STATS                            ██
+-- ████████████████████████████████████████████████████████████████
+
+local function getStats()
+    local s = {
+        bladesText=nil, bladesCount=nil, bladesMax=nil, bladesOffset=nil,
+        gasText=nil, gasPercent=nil, gasOffset=nil
+    }
+    pcall(function()
+        local top7 = LocalPlayer.PlayerGui.Interface.HUD.Main.Top["7"]
+        local b = top7:FindFirstChild("Blades")
+        if b then
+            local sets = b:FindFirstChild("Sets")
+            if sets then
+                local txt = getValueFromObject(sets, {"Texte","Text","ContentText"})
+                if txt then
+                    s.bladesText = tostring(txt)
+                    local a, c = string.match(tostring(txt), "(%-?%d+)%s*/%s*(%-?%d+)")
+                    if a then s.bladesCount = tonumber(a) end
+                    if c then s.bladesMax = tonumber(c) end
+                end
+            end
+            local inner = b:FindFirstChild("Inner")
+            if inner then
+                local bar = inner:FindFirstChild("Bar")
+                if bar then
+                    local g = bar:FindFirstChild("Gradient")
+                    if g and g:IsA("UIGradient") then s.bladesOffset = g.Offset.X end
+                end
+            end
+        end
+        local gas = top7:FindFirstChild("Gas")
+        if gas then
+            local p = gas:FindFirstChild("Percentage")
+            if p then
+                local txt = getValueFromObject(p, {"ContentText","Texte","Text"})
+                if txt then
+                    s.gasText = tostring(txt)
+                    local n = tonumber(tostring(txt):gsub("%%",""):gsub("%s+",""))
+                    if n then s.gasPercent = n end
+                end
+            end
+            local inner = gas:FindFirstChild("Inner")
+            if inner then
+                local bar = inner:FindFirstChild("Bar")
+                if bar then
+                    local g = bar:FindFirstChild("Gradient")
+                    if g and g:IsA("UIGradient") then s.gasOffset = g.Offset.X end
+                end
+            end
+        end
+    end)
+    return s  -- ✅ BUG 1 CORRIGÉ : était "return" sans "s"
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██         RECHERCHE REFILL (toutes les maps)                 ██
+-- ████████████████████████████████████████████████████████████████
+
+local function findRefill()
+    local function safeGet(parent, name)
+        if not parent then return nil end
+        return parent:FindFirstChild(name)
+    end
+
+    local containersToScan = {}
+
+    local u = workspace:FindFirstChild("Unclimbable")
+    if u then
+        local camps = safeGet(u, "Camps")
+        if camps then
+            local campSub = safeGet(camps, "Camp")
+            if campSub then table.insert(containersToScan, campSub) end
+            table.insert(containersToScan, camps)
+        end
+
+        local world = safeGet(u, "World")
+        if world then
+            local buildings = safeGet(world, "Buildings")
+            if buildings then
+                local hanger = safeGet(buildings, "Hanger")
+                if hanger then table.insert(containersToScan, hanger) end
+            end
+        end
+
+        local props = safeGet(u, "Props")
+        if props then
+            local hq = safeGet(props, "HQ")
+            if hq then
+                table.insert(containersToScan, hq)
+                local gt = safeGet(hq, "GasTanks")
+                if gt then
+                    local r = safeGet(gt, "Refill")
+                    if r and r:IsA("BasePart") then return r end
+                end
+            end
+        end
+
+        local reloads = safeGet(u, "Reloads")
+        if reloads then table.insert(containersToScan, reloads) end
+    end
+
+    local c = workspace:FindFirstChild("Climbable")
+    if c then
+        local utgard = safeGet(c, "Utgard")
+        if utgard then table.insert(containersToScan, utgard) end
+
+        local walls = safeGet(c, "_Walls")
+        if walls then
+            local gate = safeGet(walls, "Gate")
+            if gate then table.insert(containersToScan, gate) end
+        end
+    end
+
+    for _, container in pairs(containersToScan) do
+        local direct = safeGet(container, "Refill")
+        if direct and direct:IsA("BasePart") then return direct end
+
+        for _, child in pairs(container:GetChildren()) do
+            local r1 = safeGet(child, "Refill")
+            if r1 and r1:IsA("BasePart") then return r1 end
+
+            local gt = safeGet(child, "GasTanks")
+            if gt then
+                local r2 = safeGet(gt, "Refill")
+                if r2 and r2:IsA("BasePart") then return r2 end
+            end
+        end
+    end
+
+    for _, container in pairs(containersToScan) do
+        for _, d in pairs(container:GetDescendants()) do
+            if d.Name == "Refill" and d:IsA("BasePart") then
+                return d
+            end
+        end
+    end
+
+    return nil
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  CRÉATION DU GUI                           ██
+-- ████████████████████████████████████████████████████████████████
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "Kyo_MainGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 820, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -410, 0.5, -260)
+MainFrame.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
+local mfC = Instance.new("UICorner", MainFrame); mfC.CornerRadius = UDim.new(0, 16)
+local mfS = Instance.new("UIStroke", MainFrame)
+mfS.Color = Color3.fromRGB(110, 70, 200); mfS.Thickness = 1.5; mfS.Transparency = 0.4
+local mfG = Instance.new("UIGradient", MainFrame)
+mfG.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 18, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(14, 14, 22)),
+}; mfG.Rotation = 135
+
+-- ===== SIDEBAR =====
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Size = UDim2.new(0, 230, 1, 0)
+Sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+Sidebar.BorderSizePixel = 0
+local sbC = Instance.new("UICorner", Sidebar); sbC.CornerRadius = UDim.new(0, 16)
+local sbFix = Instance.new("Frame", Sidebar)
+sbFix.Size = UDim2.new(0, 16, 1, 0); sbFix.Position = UDim2.new(1, -16, 0, 0)
+sbFix.BackgroundColor3 = Color3.fromRGB(12, 12, 18); sbFix.BorderSizePixel = 0
+local sbLine = Instance.new("Frame", Sidebar)
+sbLine.Size = UDim2.new(0, 1, 1, -20); sbLine.Position = UDim2.new(1, -1, 0, 10)
+sbLine.BackgroundColor3 = Color3.fromRGB(110, 70, 200)
+sbLine.BackgroundTransparency = 0.7; sbLine.BorderSizePixel = 0; sbLine.ZIndex = 5
+
+-- Logo
+local LogoFrame = Instance.new("Frame", Sidebar)
+LogoFrame.Size = UDim2.new(1, -24, 0, 60); LogoFrame.Position = UDim2.new(0, 12, 0, 18)
+LogoFrame.BackgroundTransparency = 1
+local LogoIcon = Instance.new("TextLabel", LogoFrame)
+LogoIcon.Size = UDim2.new(0, 40, 0, 40); LogoIcon.Position = UDim2.new(0, 0, 0, 0)
+LogoIcon.BackgroundColor3 = Color3.fromRGB(110, 70, 200)
+LogoIcon.Text = "K"; LogoIcon.TextSize = 22
+LogoIcon.Font = Enum.Font.GothamBold; LogoIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+local liC = Instance.new("UICorner", LogoIcon); liC.CornerRadius = UDim.new(0, 10)
+local LogoTitle = Instance.new("TextLabel", LogoFrame)
+LogoTitle.Size = UDim2.new(1, -50, 0, 24); LogoTitle.Position = UDim2.new(0, 50, 0, 2)
+LogoTitle.BackgroundTransparency = 1; LogoTitle.Text = "Kyo"
+LogoTitle.TextColor3 = Color3.fromRGB(240, 240, 250); LogoTitle.TextSize = 20
+LogoTitle.Font = Enum.Font.GothamBold; LogoTitle.TextXAlignment = Enum.TextXAlignment.Left
+local LogoSub = Instance.new("TextLabel", LogoFrame)
+LogoSub.Size = UDim2.new(1, -50, 0, 16); LogoSub.Position = UDim2.new(0, 50, 0, 24)
+LogoSub.BackgroundTransparency = 1; LogoSub.Text = "AOT:R • FREE"
+LogoSub.TextColor3 = Color3.fromRGB(130, 110, 200); LogoSub.TextSize = 11
+LogoSub.Font = Enum.Font.GothamMedium; LogoSub.TextXAlignment = Enum.TextXAlignment.Left
+
+local sep1 = Instance.new("Frame", Sidebar)
+sep1.Size = UDim2.new(1, -40, 0, 1); sep1.Position = UDim2.new(0, 20, 0, 92)
+sep1.BackgroundColor3 = Color3.fromRGB(60, 50, 90)
+sep1.BackgroundTransparency = 0.5; sep1.BorderSizePixel = 0
+
+-- Tabs
+local TabContainer = Instance.new("Frame", Sidebar)
+TabContainer.Size = UDim2.new(1, -24, 1, -180)
+TabContainer.Position = UDim2.new(0, 12, 0, 105)
+TabContainer.BackgroundTransparency = 1
+local TabLayout = Instance.new("UIListLayout", TabContainer)
+TabLayout.Padding = UDim.new(0, 5); TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local tabs, pages = {}, {}
+
+local function createTab(name, icon, order)
+    local btn = Instance.new("TextButton", TabContainer)
+    btn.Name = name; btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 38); btn.BackgroundTransparency = 1
+    btn.Text = ""; btn.AutoButtonColor = false; btn.LayoutOrder = order
+    local c = Instance.new("UICorner", btn); c.CornerRadius = UDim.new(0, 8)
+    local accent = Instance.new("Frame", btn)
+    accent.Name = "Accent"; accent.Size = UDim2.new(0, 3, 0.6, 0)
+    accent.Position = UDim2.new(0, 0, 0.2, 0)
+    accent.BackgroundColor3 = Color3.fromRGB(140, 90, 230); accent.BorderSizePixel = 0
+    accent.Visible = false
+    local ac = Instance.new("UICorner", accent); ac.CornerRadius = UDim.new(1, 0)
+    local ic = Instance.new("TextLabel", btn)
+    ic.Size = UDim2.new(0, 30, 1, 0); ic.Position = UDim2.new(0, 12, 0, 0)
+    ic.BackgroundTransparency = 1; ic.Text = icon; ic.TextSize = 16
+    ic.Font = Enum.Font.SourceSans; ic.TextColor3 = Color3.fromRGB(180, 180, 200)
+    local lbl = Instance.new("TextLabel", btn)
+    lbl.Size = UDim2.new(1, -50, 1, 0); lbl.Position = UDim2.new(0, 48, 0, 0)
+    lbl.BackgroundTransparency = 1; lbl.Text = name
+    lbl.TextColor3 = Color3.fromRGB(180, 180, 200); lbl.TextSize = 13
+    lbl.Font = Enum.Font.GothamMedium; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    btn.MouseEnter:Connect(function()
+        if tabs[name] and not tabs[name].Selected then
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 0.7}):Play()
+        end
+    end)
+    btn.MouseLeave:Connect(function()
+        if tabs[name] and not tabs[name].Selected then
+            TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+        end
+    end)
+    tabs[name] = {Button=btn, Label=lbl, Icon=ic, Accent=accent, Selected=false}
+    return btn
+end
+
+createTab("Main", "📋", 1)
+createTab("Raids", "⚔️", 2)
+createTab("Stats", "📊", 3)
+createTab("Webhook", "🔗", 4)
+createTab("Visual", "👁️", 5)
+createTab("Teleport", "📍", 6)
+createTab("Paramètres", "⚙️", 7)
+createTab("Debug", "🔧", 8)
+
+-- User Frame
+local UserFrame = Instance.new("Frame", Sidebar)
+UserFrame.Size = UDim2.new(1, -24, 0, 55); UserFrame.Position = UDim2.new(0, 12, 1, -68)
+UserFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28); UserFrame.BorderSizePixel = 0
+local ufc = Instance.new("UICorner", UserFrame); ufc.CornerRadius = UDim.new(0, 10)
+local Avatar = Instance.new("ImageLabel", UserFrame)
+Avatar.Size = UDim2.new(0, 38, 0, 38); Avatar.Position = UDim2.new(0, 8, 0.5, -19)
+Avatar.BackgroundColor3 = Color3.fromRGB(40, 40, 55); Avatar.BorderSizePixel = 0
+Avatar.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
+local avc = Instance.new("UICorner", Avatar); avc.CornerRadius = UDim.new(1, 0)
+local UserName = Instance.new("TextLabel", UserFrame)
+UserName.Size = UDim2.new(1, -55, 0, 18); UserName.Position = UDim2.new(0, 52, 0, 8)
+UserName.BackgroundTransparency = 1; UserName.Text = LocalPlayer.DisplayName
+UserName.TextColor3 = Color3.fromRGB(230, 230, 245); UserName.TextSize = 13
+UserName.Font = Enum.Font.GothamBold; UserName.TextXAlignment = Enum.TextXAlignment.Left
+UserName.TextTruncate = Enum.TextTruncate.AtEnd
+local UserHandle = Instance.new("TextLabel", UserFrame)
+UserHandle.Size = UDim2.new(1, -55, 0, 14); UserHandle.Position = UDim2.new(0, 52, 0, 27)
+UserHandle.BackgroundTransparency = 1; UserHandle.Text = "@" .. LocalPlayer.Name
+UserHandle.TextColor3 = Color3.fromRGB(120, 120, 140); UserHandle.TextSize = 11
+UserHandle.Font = Enum.Font.Gotham; UserHandle.TextXAlignment = Enum.TextXAlignment.Left
+UserHandle.TextTruncate = Enum.TextTruncate.AtEnd
+
+-- Content Area
+local ContentArea = Instance.new("Frame", MainFrame)
+ContentArea.Size = UDim2.new(1, -230, 1, 0); ContentArea.Position = UDim2.new(0, 230, 0, 0)
+ContentArea.BackgroundTransparency = 1
+local ContentHeader = Instance.new("Frame", ContentArea)
+ContentHeader.Size = UDim2.new(1, 0, 0, 55); ContentHeader.BackgroundTransparency = 1
+local HeaderTitle = Instance.new("TextLabel", ContentHeader)
+HeaderTitle.Size = UDim2.new(0, 300, 1, 0); HeaderTitle.Position = UDim2.new(0, 22, 0, 0)
+HeaderTitle.BackgroundTransparency = 1; HeaderTitle.Text = "Main"
+HeaderTitle.TextColor3 = Color3.fromRGB(240, 240, 250); HeaderTitle.TextSize = 18
+HeaderTitle.Font = Enum.Font.GothamBold; HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local function makeWinBtn(text, bg, posX, parent)
+    local b = Instance.new("TextButton", parent)
+    b.Size = UDim2.new(0, 30, 0, 30); b.Position = UDim2.new(1, posX, 0.5, -15)
+    b.BackgroundColor3 = bg; b.Text = text; b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.TextSize = 16; b.Font = Enum.Font.GothamBold; b.BorderSizePixel = 0
+    local c = Instance.new("UICorner", b); c.CornerRadius = UDim.new(0, 7)
+    return b
+end
+local CloseBtn = makeWinBtn("✕", Color3.fromRGB(230, 70, 70), -38, ContentHeader)
+local MinBtn = makeWinBtn("−", Color3.fromRGB(245, 180, 70), -74, ContentHeader)
+
+local headerSep = Instance.new("Frame", ContentArea)
+headerSep.Size = UDim2.new(1, -40, 0, 1); headerSep.Position = UDim2.new(0, 20, 0, 55)
+headerSep.BackgroundColor3 = Color3.fromRGB(60, 50, 90)
+headerSep.BackgroundTransparency = 0.6; headerSep.BorderSizePixel = 0
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                HELPERS UI COMPOSANTS                       ██
+-- ████████████████████████████████████████████████████████████████
+
+local function lockDrag() MainFrame.Draggable = false end
+local function unlockDrag() MainFrame.Draggable = true end
+
+local function makePage(name)
+    local p = Instance.new("Frame", ContentArea)
+    p.Name = name .. "Page"; p.Size = UDim2.new(1, -20, 1, -70)
+    p.Position = UDim2.new(0, 10, 0, 65); p.BackgroundTransparency = 1; p.Visible = false
+    pages[name] = p
+    return p
+end
+
+local function makeSection(parent, title, posX, posY, sizeX, sizeY)
+    local s = Instance.new("Frame", parent)
+    s.Size = UDim2.new(0, sizeX, 0, sizeY); s.Position = UDim2.new(0, posX, 0, posY)
+    s.BackgroundColor3 = Color3.fromRGB(22, 22, 30); s.BorderSizePixel = 0
+    local c = Instance.new("UICorner", s); c.CornerRadius = UDim.new(0, 12)
+    local st = Instance.new("UIStroke", s)
+    st.Color = Color3.fromRGB(50, 45, 75); st.Thickness = 1; st.Transparency = 0.5
+    local bar = Instance.new("Frame", s)
+    bar.Size = UDim2.new(0, 3, 0, 16); bar.Position = UDim2.new(0, 8, 0, 17)
+    bar.BackgroundColor3 = Color3.fromRGB(140, 90, 230); bar.BorderSizePixel = 0
+    local bc = Instance.new("UICorner", bar); bc.CornerRadius = UDim.new(1, 0)
+    local t = Instance.new("TextLabel", s)
+    t.Size = UDim2.new(1, -30, 0, 22); t.Position = UDim2.new(0, 18, 0, 14)
+    t.BackgroundTransparency = 1; t.Text = title
+    t.TextColor3 = Color3.fromRGB(240, 240, 250); t.TextSize = 15
+    t.Font = Enum.Font.GothamBold; t.TextXAlignment = Enum.TextXAlignment.Left
+    return s
+end
+
+local toggleSetters = {}
+
+local function makeToggle(parent, label, posY, settingKey, callback)
+    local d = Settings[settingKey] or false
+    local row = Instance.new("Frame", parent)
+    row.Size = UDim2.new(1, -30, 0, 34); row.Position = UDim2.new(0, 15, 0, posY)
+    row.BackgroundTransparency = 1
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size = UDim2.new(1, -60, 1, 0); lbl.BackgroundTransparency = 1
+    lbl.Text = label; lbl.TextColor3 = Color3.fromRGB(210, 210, 225)
+    lbl.TextSize = 13; lbl.Font = Enum.Font.Gotham
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local bg = Instance.new("Frame", row)
+    bg.Size = UDim2.new(0, 44, 0, 22); bg.Position = UDim2.new(1, -45, 0.5, -11)
+    bg.BackgroundColor3 = d and Color3.fromRGB(120, 80, 220) or Color3.fromRGB(50, 50, 65)
+    bg.BorderSizePixel = 0
+    local bgc = Instance.new("UICorner", bg); bgc.CornerRadius = UDim.new(1, 0)
+    local circle = Instance.new("Frame", bg)
+    circle.Size = UDim2.new(0, 16, 0, 16)
+    circle.Position = d and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)
+    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255); circle.BorderSizePixel = 0
+    local cc = Instance.new("UICorner", circle); cc.CornerRadius = UDim.new(1, 0)
+    local clk = Instance.new("TextButton", row)
+    clk.Size = UDim2.new(1, 0, 1, 0); clk.BackgroundTransparency = 1; clk.Text = ""
+
+    local function setState(sv, fireCb)
+        Settings[settingKey] = sv
+        local ti = TweenInfo.new(0.22, Enum.EasingStyle.Quart)
+        if sv then
+            TweenService:Create(bg, ti, {BackgroundColor3 = Color3.fromRGB(120, 80, 220)}):Play()
+            TweenService:Create(circle, ti, {Position = UDim2.new(1, -19, 0.5, -8)}):Play()
+        else
+            TweenService:Create(bg, ti, {BackgroundColor3 = Color3.fromRGB(50, 50, 65)}):Play()
+            TweenService:Create(circle, ti, {Position = UDim2.new(0, 3, 0.5, -8)}):Play()
+        end
+        if fireCb ~= false and callback then callback(sv) end
+        saveSettings()
+        logDebug("Toggle [" .. settingKey .. "] = " .. tostring(sv))
+    end
+    clk.MouseButton1Click:Connect(function() setState(not Settings[settingKey]) end)
+    toggleSetters[settingKey] = setState
+    return row
+end
+
+local function makeSlider(parent, label, posY, minVal, maxVal, settingKey, callback)
+    local d = Settings[settingKey] or minVal
+    local row = Instance.new("Frame", parent)
+    row.Size = UDim2.new(1, -30, 0, 38); row.Position = UDim2.new(0, 15, 0, posY)
+    row.BackgroundTransparency = 1
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size = UDim2.new(0, 100, 1, 0); lbl.BackgroundTransparency = 1
+    lbl.Text = label; lbl.TextColor3 = Color3.fromRGB(210, 210, 225)
+    lbl.TextSize = 13; lbl.Font = Enum.Font.Gotham
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local barBG = Instance.new("Frame", row)
+    barBG.Size = UDim2.new(1, -180, 0, 6); barBG.Position = UDim2.new(0, 105, 0.5, -3)
+    barBG.BackgroundColor3 = Color3.fromRGB(45, 45, 60); barBG.BorderSizePixel = 0
+    local bbc = Instance.new("UICorner", barBG); bbc.CornerRadius = UDim.new(1, 0)
+    local fill = Instance.new("Frame", barBG)
+    local pct = math.clamp((d - minVal) / (maxVal - minVal), 0, 1)
+    fill.Size = UDim2.new(pct, 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(140, 90, 230); fill.BorderSizePixel = 0
+    local fc = Instance.new("UICorner", fill); fc.CornerRadius = UDim.new(1, 0)
+    local knob = Instance.new("Frame", barBG)
+    knob.Size = UDim2.new(0, 14, 0, 14); knob.Position = UDim2.new(pct, -7, 0.5, -7)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255); knob.BorderSizePixel = 0; knob.ZIndex = 2
+    local kc = Instance.new("UICorner", knob); kc.CornerRadius = UDim.new(1, 0)
+    local valBox = Instance.new("TextLabel", row)
+    valBox.Size = UDim2.new(0, 55, 0, 26); valBox.Position = UDim2.new(1, -60, 0.5, -13)
+    valBox.BackgroundColor3 = Color3.fromRGB(32, 32, 44); valBox.BorderSizePixel = 0
+    valBox.Text = tostring(d); valBox.TextColor3 = Color3.fromRGB(230, 230, 245)
+    valBox.TextSize = 12; valBox.Font = Enum.Font.GothamMedium
+    local vbc = Instance.new("UICorner", valBox); vbc.CornerRadius = UDim.new(0, 6)
+
+    local dragging = false
+    local function updFromX(x)
+        local rel = math.clamp((x - barBG.AbsolutePosition.X) / barBG.AbsoluteSize.X, 0, 1)
+        local val = math.floor(minVal + (maxVal - minVal) * rel)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        knob.Position = UDim2.new(rel, -7, 0.5, -7)
+        valBox.Text = tostring(val)
+        Settings[settingKey] = val
+        if callback then callback(val) end
+    end
+    local function startDrag(x) dragging = true; lockDrag(); updFromX(x) end
+    barBG.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            startDrag(i.Position.X)
+        end
+    end)
+    knob.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            startDrag(i.Position.X)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(i)
+        if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and dragging then
+            dragging = false; unlockDrag(); saveSettings()
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            updFromX(i.Position.X)
+        end
+    end)
+end
+
+local function makeColorPicker(parent, label, posY, settingKey, callback)
+    local saved = Settings[settingKey] or {255, 0, 0}
+    local r, g, b = saved[1], saved[2], saved[3]
+    local row = Instance.new("Frame", parent)
+    row.Size = UDim2.new(1, -30, 0, 115); row.Position = UDim2.new(0, 15, 0, posY)
+    row.BackgroundTransparency = 1
+    local lbl = Instance.new("TextLabel", row)
+    lbl.Size = UDim2.new(1, -60, 0, 22); lbl.BackgroundTransparency = 1
+    lbl.Text = label; lbl.TextColor3 = Color3.fromRGB(210, 210, 225)
+    lbl.TextSize = 13; lbl.Font = Enum.Font.Gotham
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    local preview = Instance.new("Frame", row)
+    preview.Size = UDim2.new(0, 40, 0, 22); preview.Position = UDim2.new(1, -45, 0, 0)
+    preview.BackgroundColor3 = Color3.fromRGB(r, g, b); preview.BorderSizePixel = 0
+    local pc = Instance.new("UICorner", preview); pc.CornerRadius = UDim.new(0, 5)
+    local ps = Instance.new("UIStroke", preview)
+    ps.Color = Color3.fromRGB(80, 70, 120); ps.Thickness = 1
+
+    local function update()
+        local col = Color3.fromRGB(r, g, b)
+        preview.BackgroundColor3 = col
+        Settings[settingKey] = {r, g, b}
+        if callback then callback(col) end
+    end
+
+    local function mini(name, posYY, val, color, setter)
+        local sr = Instance.new("Frame", row)
+        sr.Size = UDim2.new(1, 0, 0, 22); sr.Position = UDim2.new(0, 0, 0, posYY)
+        sr.BackgroundTransparency = 1
+        local nl = Instance.new("TextLabel", sr)
+        nl.Size = UDim2.new(0, 15, 1, 0); nl.BackgroundTransparency = 1
+        nl.Text = name; nl.TextColor3 = color; nl.TextSize = 12; nl.Font = Enum.Font.GothamBold
+        local bar = Instance.new("Frame", sr)
+        bar.Size = UDim2.new(1, -75, 0, 5); bar.Position = UDim2.new(0, 20, 0.5, -2)
+        bar.BackgroundColor3 = Color3.fromRGB(45, 45, 60); bar.BorderSizePixel = 0
+        local bc = Instance.new("UICorner", bar); bc.CornerRadius = UDim.new(1, 0)
+        local fill2 = Instance.new("Frame", bar)
+        fill2.Size = UDim2.new(val / 255, 0, 1, 0)
+        fill2.BackgroundColor3 = color; fill2.BorderSizePixel = 0
+        local fc2 = Instance.new("UICorner", fill2); fc2.CornerRadius = UDim.new(1, 0)
+        local vb = Instance.new("TextLabel", sr)
+        vb.Size = UDim2.new(0, 45, 1, 0); vb.Position = UDim2.new(1, -50, 0, 0)
+        vb.BackgroundTransparency = 1; vb.Text = tostring(val)
+        vb.TextColor3 = Color3.fromRGB(210, 210, 225); vb.TextSize = 11; vb.Font = Enum.Font.Gotham
+        local dr = false
+        local function upd(x)
+            local rel = math.clamp((x - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
+            local v = math.floor(rel * 255)
+            fill2.Size = UDim2.new(rel, 0, 1, 0); vb.Text = tostring(v)
+            setter(v); update()
+        end
+        bar.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+                dr = true; lockDrag(); upd(i.Position.X)
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(i)
+            if (i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch) and dr then
+                dr = false; unlockDrag(); saveSettings()
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(i)
+            if dr and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+                upd(i.Position.X)
+            end
+        end)
+    end
+    mini("R", 32, r, Color3.fromRGB(255, 80, 80), function(v) r = v end)
+    mini("G", 58, g, Color3.fromRGB(80, 255, 100), function(v) g = v end)
+    mini("B", 84, b, Color3.fromRGB(80, 130, 255), function(v) b = v end)
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       PAGES                                ██
+-- ████████████████████████████████████████████████████████████████
+
+-- ===== MAIN =====
+local MainPage = makePage("Main")
+
+-- Section Nape (taille fixée à 440 pour avoir de la place pour tous les sliders)
+local NapeSection = makeSection(MainPage, "Nape Extender", 0, 0, 350, 440)
+
+makeToggle(NapeSection, "Activer Nape Extender", 50, "NapeExtenderEnabled", function(s)
+    Settings.NapeResize = s; Settings.NapeVisible = s
+    if toggleSetters.NapeResize then toggleSetters.NapeResize(s, false) end
+    if toggleSetters.NapeVisible then toggleSetters.NapeVisible(s, false) end
+end)
+
+-- Slider Taille Nape
+makeSlider(NapeSection, "Taille Nape", 95, 10, 200, "NapeSizeValue", function(val)
+    logDebug("Nape Size: " .. val)
+end)
+
+-- ✅ BUG 2 CORRIGÉ : napeSection → NapeSection (majuscule)
+-- Slider Transparence Nape (0 = opaque, 100 = invisible)
+makeSlider(NapeSection, "Transparence", 140, 0, 100, "NapeTransparency", function(val)
+    -- NapeTransparency stocké directement comme 0-100, converti à l'application
+    logInfo("Nape Transparence: " .. val .. "%")
+    -- Appliquer immédiatement à tous les titans existants
+    pcall(function()
+        local titans = workspace:FindFirstChild("Titans")
+        if not titans then return end
+        for _, titan in pairs(titans:GetChildren()) do
+            pcall(function()
+                local nape = titan.Hitboxes.Hit.Nape
+                if nape and nape:IsA("BasePart") then
+                    nape.Transparency = val / 100
+                end
+            end)
+        end
+    end)
+end)
+
+makeToggle(NapeSection, "Nape Visible", 185, "NapeVisible")
+makeToggle(NapeSection, "Highlight Titans", 225, "HighlightEnabled")
+makeToggle(NapeSection, "ESP Activé", 265, "ESPEnabled", function(s)
+    if not s then
+        cleanOldESP()
+        local tf = workspace:FindFirstChild("Titans")
+        if tf then
+            for _, t in pairs(tf:GetChildren()) do
+                pcall(function()
+                    local n = t:FindFirstChild("Hitboxes") and t.Hitboxes:FindFirstChild("Hit") and t.Hitboxes.Hit:FindFirstChild("Nape")
+                    if n then n.Transparency = 1 end
+                end)
+            end
+        end
+    end
+end)
+
+makeColorPicker(NapeSection, "Couleur Nape", 305, "NapeColor")
+
+local DiversSection = makeSection(MainPage, "Divers", 365, 0, 205, 440)
+makeToggle(DiversSection, "Auto Escape", 50, "AutoEscape")
+makeToggle(DiversSection, "Anti Injuries Visual", 88, "AntiInjuriesVisual")
+makeToggle(DiversSection, "Auto Retry", 126, "AutoRetry")
+makeToggle(DiversSection, "Auto Reload Blades", 164, "AutoReloadBlades")
+makeToggle(DiversSection, "Auto Refill", 202, "AutoRefill")
+makeToggle(DiversSection, "Remove Dmg Text", 240, "RemoveDmgText")
+makeToggle(DiversSection, "Auto Hide UI (15s)", 278, "AutoHideUI")
+makeToggle(DiversSection, "Noclip", 316, "Noclip")
+
+-- ===== PLACEHOLDERS =====
+local function placeholderPage(name)
+    local p = makePage(name)
+    local s = makeSection(p, name, 0, 0, 580, 420)
+    local txt = Instance.new("TextLabel", s)
+    txt.Size = UDim2.new(1, -30, 0, 30); txt.Position = UDim2.new(0, 15, 0, 55)
+    txt.BackgroundTransparency = 1; txt.Text = "🚧 Section en développement"
+    txt.TextColor3 = Color3.fromRGB(150, 150, 170); txt.TextSize = 14
+    txt.Font = Enum.Font.Gotham; txt.TextXAlignment = Enum.TextXAlignment.Left
+end
+placeholderPage("Raids")
+placeholderPage("Stats")
+placeholderPage("Webhook")
+placeholderPage("Visual")
+placeholderPage("Teleport")
+
+-- ===== PARAMÈTRES =====
+local ParamPage = makePage("Paramètres")
+local ParamSection = makeSection(ParamPage, "Paramètres Généraux", 0, 0, 580, 420)
+makeToggle(ParamSection, "Souris Personnalisée (toujours visible)", 50, "CustomCursorAlways")
+
+-- Keybind
+local KeybindRow = Instance.new("Frame", ParamSection)
+KeybindRow.Size = UDim2.new(1, -30, 0, 36); KeybindRow.Position = UDim2.new(0, 15, 0, 92)
+KeybindRow.BackgroundTransparency = 1
+local KbLabel = Instance.new("TextLabel", KeybindRow)
+KbLabel.Size = UDim2.new(1, -130, 1, 0); KbLabel.BackgroundTransparency = 1
+KbLabel.Text = "Touche Ouvrir/Fermer Menu"; KbLabel.TextColor3 = Color3.fromRGB(210, 210, 225)
+KbLabel.TextSize = 13; KbLabel.Font = Enum.Font.Gotham
+KbLabel.TextXAlignment = Enum.TextXAlignment.Left
+local KbBtn = Instance.new("TextButton", KeybindRow)
+KbBtn.Size = UDim2.new(0, 110, 0, 30); KbBtn.Position = UDim2.new(1, -115, 0.5, -15)
+KbBtn.BackgroundColor3 = Color3.fromRGB(32, 32, 44); KbBtn.BorderSizePixel = 0
+KbBtn.Text = "[ " .. (Settings.ToggleKey or "P") .. " ]"
+KbBtn.TextColor3 = Color3.fromRGB(230, 230, 245); KbBtn.TextSize = 13
+KbBtn.Font = Enum.Font.GothamBold
+local kbc = Instance.new("UICorner", KbBtn); kbc.CornerRadius = UDim.new(0, 6)
+local kbs = Instance.new("UIStroke", KbBtn)
+kbs.Color = Color3.fromRGB(110, 70, 200); kbs.Thickness = 1; kbs.Transparency = 0.5
+local listeningKey = false
+KbBtn.MouseButton1Click:Connect(function()
+    listeningKey = true
+    KbBtn.Text = "... appuie une touche"
+    KbBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+end)
+
+-- Offset Retry slider
+makeSlider(ParamSection, "Retry Offset Y", 140, 0, 200, "RetryOffsetY")
+
+-- Auto Attach toggle (✅ CORRIGÉ : déplacé ici dans l'ordre logique)
+makeToggle(ParamSection, "Auto Attach (au teleport)", 188, "AutoAttach", function(state)
+    if state then enableAutoAttach() else disableAutoAttach() end
+end)
+
+local DestroyButton = Instance.new("TextButton", ParamSection)
+DestroyButton.Size = UDim2.new(1, -30, 0, 42); DestroyButton.Position = UDim2.new(0, 15, 0, 240)
+DestroyButton.BackgroundColor3 = Color3.fromRGB(180, 40, 40); DestroyButton.BorderSizePixel = 0
+DestroyButton.Text = "🗑️  DESTROY GUI & ESP"; DestroyButton.TextColor3 = Color3.fromRGB(255,255,255)
+DestroyButton.TextSize = 14; DestroyButton.Font = Enum.Font.GothamBold
+local dbc = Instance.new("UICorner", DestroyButton); dbc.CornerRadius = UDim.new(0, 8)
+DestroyButton.MouseEnter:Connect(function()
+    TweenService:Create(DestroyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(220, 60, 60)}):Play()
+end)
+DestroyButton.MouseLeave:Connect(function()
+    TweenService:Create(DestroyButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(180, 40, 40)}):Play()
+end)
+
+local InfoBox = Instance.new("Frame", ParamSection)
+InfoBox.Size = UDim2.new(1, -30, 0, 70); InfoBox.Position = UDim2.new(0, 15, 0, 295)
+InfoBox.BackgroundColor3 = Color3.fromRGB(28, 28, 38); InfoBox.BorderSizePixel = 0
+local ibc = Instance.new("UICorner", InfoBox); ibc.CornerRadius = UDim.new(0, 8)
+local InfoTxt = Instance.new("TextLabel", InfoBox)
+InfoTxt.Size = UDim2.new(1, -20, 1, -20); InfoTxt.Position = UDim2.new(0, 10, 0, 10)
+InfoTxt.BackgroundTransparency = 1
+InfoTxt.Text = "ℹ️  Kyo v1.0 • Configs sauvegardées automatiquement"
+InfoTxt.TextColor3 = Color3.fromRGB(170, 170, 195); InfoTxt.TextSize = 12
+InfoTxt.Font = Enum.Font.Gotham; InfoTxt.TextXAlignment = Enum.TextXAlignment.Left
+InfoTxt.TextYAlignment = Enum.TextYAlignment.Top; InfoTxt.TextWrapped = true
+
+-- ===== DEBUG =====
+local DebugPage = makePage("Debug")
+local DebugSection = makeSection(DebugPage, "Debug & Tests", 0, 0, 580, 420)
+local DebugScroll = Instance.new("ScrollingFrame", DebugSection)
+DebugScroll.Size = UDim2.new(1, -30, 1, -240); DebugScroll.Position = UDim2.new(0, 15, 0, 215)
+DebugScroll.BackgroundColor3 = Color3.fromRGB(12, 12, 18); DebugScroll.BorderSizePixel = 0
+DebugScroll.ScrollBarThickness = 4
+DebugScroll.ScrollBarImageColor3 = Color3.fromRGB(110, 70, 200)
+DebugScroll.CanvasSize = UDim2.new(0, 0, 0, 600)
+local dsc = Instance.new("UICorner", DebugScroll); dsc.CornerRadius = UDim.new(0, 6)
+local DebugText = Instance.new("TextLabel", DebugScroll)
+DebugText.Size = UDim2.new(1, -10, 0, 580); DebugText.Position = UDim2.new(0, 8, 0, 8)
+DebugText.BackgroundTransparency = 1; DebugText.Text = "Clic un bouton pour debug..."
+DebugText.TextColor3 = Color3.fromRGB(180, 220, 180); DebugText.TextSize = 11
+DebugText.Font = Enum.Font.Code; DebugText.TextXAlignment = Enum.TextXAlignment.Left
+DebugText.TextYAlignment = Enum.TextYAlignment.Top; DebugText.TextWrapped = true
+local function setDebug(txt) DebugText.Text = txt end
+
+local function makeDebugBtn(label, posX, posY, w, callback)
+    local b = Instance.new("TextButton", DebugSection)
+    b.Size = UDim2.new(0, w, 0, 32); b.Position = UDim2.new(0, posX, 0, posY)
+    b.BackgroundColor3 = Color3.fromRGB(80, 60, 160); b.BorderSizePixel = 0
+    b.Text = label; b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 12; b.Font = Enum.Font.GothamBold
+    local c = Instance.new("UICorner", b); c.CornerRadius = UDim.new(0, 6)
+    b.MouseEnter:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(110, 80, 200)}):Play()
+    end)
+    b.MouseLeave:Connect(function()
+        TweenService:Create(b, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(80, 60, 160)}):Play()
+    end)
+    b.MouseButton1Click:Connect(callback)
+    return b
+end
+
+local function getRetryButton()
+    local interf = LocalPlayer.PlayerGui:FindFirstChild("Interface")
+    if not interf then return nil end
+    local rewards = interf:FindFirstChild("Rewards"); if not rewards then return nil end
+    local main = rewards:FindFirstChild("Main"); if not main then return nil end
+    local info = main:FindFirstChild("Info"); if not info then return nil end
+    local mainInner = info:FindFirstChild("Main"); if not mainInner then return nil end
+    local btns = mainInner:FindFirstChild("Buttons"); if not btns then return nil end
+    return btns:FindFirstChild("Retry")
+end
+
+makeDebugBtn("📊 Show Stats", 15, 50, 130, function()
+    local s = getStats()
+    setDebug(string.format([[STATS ACTUELLES :
+
+Blades texte    : %s
+Blades count    : %s
+Blades max      : %s
+Blades offset.X : %s
+
+Gas texte       : %s
+Gas percent     : %s
+Gas offset.X    : %s]],
+        tostring(s.bladesText), tostring(s.bladesCount), tostring(s.bladesMax),
+        tostring(s.bladesOffset), tostring(s.gasText),
+        tostring(s.gasPercent), tostring(s.gasOffset)))
+end)
+
+makeDebugBtn("👤 Player Info", 155, 50, 130, function()
+    local pos = getPlayerPosition()
+    local h, mh = getPlayerHealth()
+    local char = getCharacter()
+    setDebug(string.format([[PLAYER INFO :
+
+Character : %s
+Position  : %s
+Health    : %s / %s
+Hitbox    : %s]],
+        tostring(char and char.Name or "nil"), tostring(pos),
+        tostring(h), tostring(mh), tostring(getHitbox() ~= nil)))
+end)
+
+makeDebugBtn("⛽ Find Refill", 295, 50, 130, function()
+    local r = findRefill()
+    if r then
+        setDebug(string.format([[REFILL TROUVÉE :
+
+Nom         : %s
+Chemin      : %s
+Position    : %s
+Size        : %s
+Anchored    : %s]],
+            r.Name, r:GetFullName(), tostring(r.Position),
+            tostring(r.Size), tostring(r.Anchored)))
+    else
+        setDebug("❌ Aucune Refill trouvée dans cette map")
+    end
+end)
+
+makeDebugBtn("⌨️ Test Key Q", 15, 92, 130, function()
+    setDebug("Ouvre le chat AVANT et regarde si Q s'écrit...")
+    task.wait(2)
+    pressKey(Enum.KeyCode.Q)
+    setDebug("✅ Touche Q envoyée")
+end)
+
+makeDebugBtn("⌨️ Test Key R", 155, 92, 130, function()
+    setDebug("Test touche R dans 2s...")
+    task.wait(2)
+    pressKey(Enum.KeyCode.R)
+    setDebug("✅ Touche R envoyée")
+end)
+
+makeDebugBtn("🖱️ Test Click Retry", 295, 92, 130, function()
+    local retry = getRetryButton()
+    if not retry then setDebug("❌ Bouton Retry introuvable") return end
+    local ap = retry.AbsolutePosition
+    local as = retry.AbsoluteSize
+    local cx = ap.X + as.X / 2
+    local cy = ap.Y + as.Y / 2 + Settings.RetryOffsetY
+    setDebug(string.format([[BOUTON RETRY :
+
+Nom        : %s
+AbsPos     : (%d, %d)
+AbsSize    : (%d, %d)
+Offset Y   : %d
+Click X,Y  : (%d, %d)
+
+Click simulé !]],
+        retry.Name,
+        math.floor(ap.X), math.floor(ap.Y),
+        math.floor(as.X), math.floor(as.Y),
+        Settings.RetryOffsetY, math.floor(cx), math.floor(cy)))
+    pcall(function()
+        VirtualInputManager:SendMouseMoveEvent(cx, cy, game)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+    end)
+end)
+
+makeDebugBtn("⚙️ Executor Info", 15, 134, 130, function()
+    setDebug(string.format([[EXÉCUTEUR :
+
+keypress       : %s
+keyrelease     : %s
+writefile      : %s
+readfile       : %s
+isfile         : %s
+identifyexecutor : %s]],
+        tostring(keypress ~= nil), tostring(keyrelease ~= nil),
+        tostring(writefile ~= nil), tostring(readfile ~= nil),
+        tostring(isfile ~= nil),
+        tostring(identifyexecutor and identifyexecutor() or "?")))
+end)
+
+local refreshing = false
+makeDebugBtn("🔄 Auto Stats (1s)", 155, 134, 130, function()
+    refreshing = not refreshing
+    if refreshing then
+        task.spawn(function()
+            while refreshing and _G.KYO_RUNNING do
+                local s = getStats()
+                local h, mh = getPlayerHealth()
+                setDebug(string.format([[AUTO STATS [LIVE] :
+
+Health      : %s / %s
+Blades text : %s
+Blades cnt  : %s | offset: %s
+Gas text    : %s
+Gas %%       : %s | offset: %s
+
+Refill      : %s
+
+(re-clic pour stop)]],
+                    tostring(h), tostring(mh),
+                    tostring(s.bladesText),
+                    tostring(s.bladesCount), tostring(s.bladesOffset),
+                    tostring(s.gasText),
+                    tostring(s.gasPercent), tostring(s.gasOffset),
+                    findRefill() and "✅ OK" or "❌"))
+                task.wait(1)
+            end
+        end)
+    else
+        setDebug("Auto-refresh stoppé")
+    end
+end)
+
+makeDebugBtn("🧪 Test Refill TP", 295, 134, 130, function()
+    local r = findRefill()
+    local pos = getPlayerPosition()
+    if not r then setDebug("❌ Aucune Refill") return end
+    if not pos then setDebug("❌ Pas de position joueur") return end
+    if not r.Anchored then r.Anchored = true end
+    r.CFrame = CFrame.new(pos)
+    setDebug(string.format([[REFILL TP :
+Refill position : %s
+Player position : %s
+✅ Refill TP au joueur !]],
+        tostring(r.Position), tostring(pos)))
+end)
+
+-- ===== SELECT TAB =====
+local function selectTab(name)
+    HeaderTitle.Text = name
+    for n, t in pairs(tabs) do
+        local sel = (n == name)
+        t.Selected = sel
+        t.Accent.Visible = sel
+        if sel then
+            TweenService:Create(t.Button, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+            t.Button.BackgroundColor3 = Color3.fromRGB(35, 30, 50)
+            t.Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            t.Icon.TextColor3 = Color3.fromRGB(140, 90, 230)
+        else
+            TweenService:Create(t.Button, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+            t.Label.TextColor3 = Color3.fromRGB(180, 180, 200)
+            t.Icon.TextColor3 = Color3.fromRGB(180, 180, 200)
+        end
+    end
+    for n, p in pairs(pages) do p.Visible = (n == name) end
+end
+for n, t in pairs(tabs) do
+    t.Button.MouseButton1Click:Connect(function() selectTab(n) end)
+end
+selectTab("Main")
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  MINI BUTTON (K)                           ██
+-- ████████████████████████████████████████████████████████████████
+
+local MiniGui = Instance.new("ScreenGui")
+MiniGui.Name = "Kyo_MiniGUI"; MiniGui.ResetOnSpawn = false
+MiniGui.IgnoreGuiInset = true; MiniGui.Parent = CoreGui
+local MiniBtn = Instance.new("TextButton", MiniGui)
+MiniBtn.Size = UDim2.new(0, 48, 0, 48); MiniBtn.Position = UDim2.new(0, 8, 0.5, -24)
+MiniBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 26); MiniBtn.BorderSizePixel = 0
+MiniBtn.Text = "K"; MiniBtn.TextColor3 = Color3.fromRGB(200, 180, 255)
+MiniBtn.TextSize = 22; MiniBtn.Font = Enum.Font.GothamBold
+MiniBtn.Visible = false; MiniBtn.Active = true; MiniBtn.Draggable = true
+local mbc = Instance.new("UICorner", MiniBtn); mbc.CornerRadius = UDim.new(0, 12)
+local mbs = Instance.new("UIStroke", MiniBtn)
+mbs.Color = Color3.fromRGB(140, 90, 230); mbs.Thickness = 1.5
+
+local function minimize() MainFrame.Visible = false; MiniBtn.Visible = true end
+local function restore() MiniBtn.Visible = false; MainFrame.Visible = true end
+MinBtn.MouseButton1Click:Connect(minimize)
+MiniBtn.MouseButton1Click:Connect(restore)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  CURSEUR PERSONNALISÉ                      ██
+-- ████████████████████████████████████████████████████████████████
+
+local CursorGui = Instance.new("ScreenGui")
+CursorGui.Name = "Kyo_Cursor"; CursorGui.ResetOnSpawn = false
+CursorGui.IgnoreGuiInset = true; CursorGui.DisplayOrder = 9999; CursorGui.Parent = CoreGui
+local Cursor = Instance.new("Frame", CursorGui)
+Cursor.Size = UDim2.new(0, 18, 0, 18); Cursor.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Cursor.BorderSizePixel = 0; Cursor.Visible = false
+local cuc = Instance.new("UICorner", Cursor); cuc.CornerRadius = UDim.new(1, 0)
+local cus = Instance.new("UIStroke", Cursor)
+cus.Color = Color3.fromRGB(140, 90, 230); cus.Thickness = 2
+local CursorIn = Instance.new("Frame", Cursor)
+CursorIn.Size = UDim2.new(0, 5, 0, 5); CursorIn.Position = UDim2.new(0.5, -2.5, 0.5, -2.5)
+CursorIn.BackgroundColor3 = Color3.fromRGB(140, 90, 230); CursorIn.BorderSizePixel = 0
+local cic = Instance.new("UICorner", CursorIn); cic.CornerRadius = UDim.new(1, 0)
+
+RunService.RenderStepped:Connect(function()
+    if not _G.KYO_RUNNING then Cursor.Visible = false return end
+    local mp = UserInputService:GetMouseLocation()
+    if Settings.CustomCursorAlways then
+        Cursor.Visible = true
+        Cursor.Position = UDim2.new(0, mp.X - 9, 0, mp.Y - 9)
+    else
+        if not MainFrame.Visible then Cursor.Visible = false return end
+        local fp = MainFrame.AbsolutePosition
+        local fs = MainFrame.AbsoluteSize
+        local inside = mp.X >= fp.X and mp.X <= fp.X + fs.X and mp.Y >= fp.Y and mp.Y <= fp.Y + fs.Y
+        Cursor.Visible = inside
+        if inside then Cursor.Position = UDim2.new(0, mp.X - 9, 0, mp.Y - 9) end
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██           ALERTE REFILL (GUI ROUGE EN HAUT)                ██
+-- ████████████████████████████████████████████████████████████████
+
+local AlertsGui = Instance.new("ScreenGui")
+AlertsGui.Name = "Kyo_Alerts"; AlertsGui.ResetOnSpawn = false
+AlertsGui.IgnoreGuiInset = true; AlertsGui.DisplayOrder = 9998; AlertsGui.Parent = CoreGui
+
+local RefillAlert = Instance.new("Frame", AlertsGui)
+RefillAlert.Size = UDim2.new(0, 420, 0, 60)
+RefillAlert.Position = UDim2.new(0.5, -210, 0, -80)
+RefillAlert.BackgroundColor3 = Color3.fromRGB(180, 30, 30); RefillAlert.BorderSizePixel = 0
+RefillAlert.Visible = false
+local raC = Instance.new("UICorner", RefillAlert); raC.CornerRadius = UDim.new(0, 12)
+local raS = Instance.new("UIStroke", RefillAlert)
+raS.Color = Color3.fromRGB(255, 100, 100); raS.Thickness = 2
+local raG = Instance.new("UIGradient", RefillAlert)
+raG.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 30, 30)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 20, 20)),
+}; raG.Rotation = 90
+local raIcon = Instance.new("TextLabel", RefillAlert)
+raIcon.Size = UDim2.new(0, 50, 1, 0); raIcon.Position = UDim2.new(0, 10, 0, 0)
+raIcon.BackgroundTransparency = 1; raIcon.Text = "⚠️"
+raIcon.TextSize = 28; raIcon.Font = Enum.Font.SourceSansBold
+raIcon.TextColor3 = Color3.fromRGB(255, 255, 255)
+local raText = Instance.new("TextLabel", RefillAlert)
+raText.Size = UDim2.new(1, -70, 1, 0); raText.Position = UDim2.new(0, 65, 0, 0)
+raText.BackgroundTransparency = 1; raText.Text = "METS-TOI À TERRE POUR REFILL !"
+raText.TextColor3 = Color3.fromRGB(255, 255, 255); raText.TextSize = 18
+raText.Font = Enum.Font.GothamBold; raText.TextXAlignment = Enum.TextXAlignment.Left
+local raPulse = Instance.new("Frame", RefillAlert)
+raPulse.Size = UDim2.new(1, 0, 0, 3); raPulse.Position = UDim2.new(0, 0, 1, -3)
+raPulse.BackgroundColor3 = Color3.fromRGB(255, 200, 200); raPulse.BorderSizePixel = 0
+
+local refillAlertVisible = false
+local refillAlertTween = nil
+
+local function showRefillAlert()
+    if refillAlertVisible then return end
+    refillAlertVisible = true; RefillAlert.Visible = true
+    if refillAlertTween then refillAlertTween:Cancel() end
+    refillAlertTween = TweenService:Create(RefillAlert,
+        TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Position = UDim2.new(0.5, -210, 0, 20)})
+    refillAlertTween:Play()
+end
+
+local function hideRefillAlert()
+    if not refillAlertVisible then return end
+    refillAlertVisible = false
+    if refillAlertTween then refillAlertTween:Cancel() end
+    refillAlertTween = TweenService:Create(RefillAlert,
+        TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+        {Position = UDim2.new(0.5, -210, 0, -80)})
+    refillAlertTween:Play()
+    refillAlertTween.Completed:Connect(function()
+        if not refillAlertVisible then RefillAlert.Visible = false end
+    end)
+end
+
+task.spawn(function()
+    local t = 0
+    while _G.KYO_RUNNING do
+        t = t + 0.08
+        if refillAlertVisible then
+            local a = (math.sin(t * 3) + 1) / 2
+            pcall(function()
+                raS.Transparency = 0.2 + 0.5 * a
+                raPulse.BackgroundTransparency = 0.2 + 0.5 * a
+            end)
+        end
+        task.wait(0.05)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██              ANIMATION GRADIENT STROKE                     ██
+-- ████████████████████████████████████████████████████████████████
+
+task.spawn(function()
+    local t = 0
+    while _G.KYO_RUNNING do
+        t = t + 0.02
+        local a = (math.sin(t) + 1) / 2
+        local r = math.floor(110 + (160 - 110) * a)
+        local g = math.floor(70 + (110 - 70) * a)
+        local b = math.floor(200 + (240 - 200) * a)
+        pcall(function() mfS.Color = Color3.fromRGB(r, g, b) end)
+        task.wait(0.05)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       ESP TITANS                           ██
+-- ████████████████████████████████████████████████████████████████
+
+local trackedTitans = {}
+
+local function isBigTitan(titan)
+    local head = titan:FindFirstChild("Head")
+    if not head then
+        for _, d in pairs(titan:GetDescendants()) do
+            if d:IsA("BasePart") and d.Name == "Head" then head = d break end
+        end
+    end
+    if not head or not head:IsA("BasePart") then return false end
+    local hs = head.Size
+    return hs.X >= BIG_TITAN_HEAD_THRESHOLD.X and hs.Y >= BIG_TITAN_HEAD_THRESHOLD.Y and hs.Z >= BIG_TITAN_HEAD_THRESHOLD.Z
+end
+
+-- ✅ BUG 3 CORRIGÉ : accolade end) manquante dans applyNape
+local function applyNape(titan)
+    pcall(function()
+        local hb = titan:FindFirstChild("Hitboxes"); if not hb then return end
+        local h = hb:FindFirstChild("Hit"); if not h then return end
+        local nape = h:FindFirstChild("Nape"); if not nape then return end
+
+        if Settings.NapeVisible then
+            nape.Material = Enum.Material.Neon
+            local nc = Settings.NapeColor
+            nape.Color = Color3.fromRGB(nc[1], nc[2], nc[3])
+        end
+
+        -- Transparence : le slider stocke 0-100, on convertit en 0-1
+        -- Si NapeVisible est false → force transparent
+        if not Settings.NapeVisible then
+            nape.Transparency = 1
+        else
+            nape.Transparency = (Settings.NapeTransparency or 0) / 100
+        end
+
+        if Settings.NapeResize then
+            if isBigTitan(titan) then
+                nape.Size = NAPE_SIZE_BIG
+            else
+                local v = Settings.NapeSizeValue
+                nape.Size = Vector3.new(v, v * 1.5, v)
+            end
+        end
+    end)
+end
+
+local function resetNape(titan)
+    pcall(function()
+        local hb = titan:FindFirstChild("Hitboxes"); if not hb then return end
+        local h = hb:FindFirstChild("Hit"); if not h then return end
+        local nape = h:FindFirstChild("Nape"); if not nape then return end
+        nape.Transparency = 1
+    end)
+end
+
+local function createESP(titan)
+    if not titan or not titan.Parent or trackedTitans[titan] then return end
+    trackedTitans[titan] = true
+    local hl = Instance.new("Highlight")
+    hl.Name = "Kyo_Highlight"
+    hl.FillColor = Color3.fromRGB(138, 43, 226); hl.FillTransparency = 0.8
+    hl.OutlineColor = Color3.fromRGB(180, 130, 230); hl.OutlineTransparency = 0.3
+    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    hl.Adornee = titan; hl.Parent = titan
+    applyNape(titan)
+    local conn
+    conn = RunService.Heartbeat:Connect(function()
+        if not _G.KYO_RUNNING then conn:Disconnect() return end
+        if not titan or not titan.Parent then
+            pcall(function() if hl and hl.Parent then hl:Destroy() end end)
+            trackedTitans[titan] = nil
+            conn:Disconnect()
+            return
+        end
+        hl.Enabled = Settings.ESPEnabled and Settings.HighlightEnabled
+        if Settings.ESPEnabled then applyNape(titan) end
+    end)
+end
+
+local function removeESP(titan)
+    pcall(function()
+        for _, d in pairs(titan:GetDescendants()) do
+            if d:IsA("Highlight") and d.Name == "Kyo_Highlight" then d:Destroy() end
+        end
+        resetNape(titan)
+    end)
+    trackedTitans[titan] = nil
+end
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        pcall(function()
+            local tf = workspace:FindFirstChild("Titans")
+            if tf and Settings.ESPEnabled then
+                for _, t in pairs(tf:GetChildren()) do
+                    if not trackedTitans[t] then createESP(t) end
+                end
+            end
+        end)
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        local tf = workspace:FindFirstChild("Titans")
+        if tf then
+            local nt = tf.ChildAdded:Wait()
+            if Settings.ESPEnabled and _G.KYO_RUNNING then
+                task.wait(0.1); createESP(nt)
+            end
+        else task.wait(1) end
+    end
+end)
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        local tf = workspace:FindFirstChild("Titans")
+        if tf then
+            local rt = tf.ChildRemoved:Wait()
+            trackedTitans[rt] = nil
+        else task.wait(1) end
+    end
+end)
+
+logSuccess("ESP initialisé")
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  ANTI INJURIES VISUAL                      ██
+-- ████████████████████████████████████████████████████████████████
+
+local injConn = nil
+local function getInjuries()
+    local c = getCharacter()
+    return c and c:FindFirstChild("Injuries")
+end
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        if Settings.AntiInjuriesVisual then
+            local inj = getInjuries()
+            if inj then
+                for _, c in pairs(inj:GetChildren()) do
+                    pcall(function() c:Destroy() end)
+                end
+                if not injConn then
+                    injConn = inj.ChildAdded:Connect(function(c)
+                        if Settings.AntiInjuriesVisual then
+                            task.wait()
+                            pcall(function() c:Destroy() end)
+                        end
+                    end)
+                    logSuccess("AntiInjuries: connecté")
+                end
+            end
+        else
+            if injConn then injConn:Disconnect(); injConn = nil; logInfo("AntiInjuries: stop") end
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                   REMOVE DMG TEXT                          ██
+-- ████████████████████████████████████████████████████████████████
+
+local numConn = nil
+local function hideNumbers()
+    pcall(function()
+        local interf = LocalPlayer.PlayerGui:FindFirstChild("Interface")
+        if not interf then return end
+        local numbers = interf:FindFirstChild("Numbers")
+        if not numbers then return end
+        for _, d in pairs(numbers:GetDescendants()) do
+            if d:IsA("GuiObject") then d.Visible = false end
+        end
+        for _, c in pairs(numbers:GetChildren()) do
+            if c:IsA("GuiObject") then c.Visible = false end
+        end
+    end)
+end
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        if Settings.RemoveDmgText then
+            hideNumbers()
+            pcall(function()
+                local interf = LocalPlayer.PlayerGui:FindFirstChild("Interface")
+                if interf then
+                    local numbers = interf:FindFirstChild("Numbers")
+                    if numbers and not numConn then
+                        numConn = numbers.DescendantAdded:Connect(function(c)
+                            if Settings.RemoveDmgText and c:IsA("GuiObject") then
+                                c.Visible = false
+                            end
+                        end)
+                        logSuccess("RemoveDmgText: connecté")
+                    end
+                end
+            end)
+        else
+            if numConn then numConn:Disconnect(); numConn = nil; logInfo("RemoveDmgText: stop") end
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██               AUTO ESCAPE (RAPIDE + ORDONNÉ)               ██
+-- ████████████████████████████████████████████████████████████████
+
+task.spawn(function()
+    logInfo("[AutoEscape] Thread démarré")
+    local escapeActive = false
+
+    while _G.KYO_RUNNING do
+        task.wait(0.1)
+
+        if not Settings.AutoEscape or escapeActive then continue end
+
+        -- ✅ BUG 6 CORRIGÉ : escapeActive géré proprement en dehors du pcall
+        local ok, err = pcall(function()
+            local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if not playerGui then return end
+            local interface = playerGui:FindFirstChild("Interface")
+            if not interface then return end
+            local buttonsFrame = interface:FindFirstChild("Buttons")
+            if not buttonsFrame then return end
+
+            -- Collecter les boutons visibles (exclure "Button")
+            local activeButtons = {}
+            for _, child in pairs(buttonsFrame:GetChildren()) do
+                if child:IsA("GuiObject") and child.Visible and child.Name ~= "Button" then
+                    local keyName = child.Name:upper()
+                    local keyCode = Enum.KeyCode[keyName]
+                    if keyCode then
+                        table.insert(activeButtons, {
+                            name = keyName,
+                            keyCode = keyCode,
+                            posX = child.AbsolutePosition.X
+                        })
+                    end
+                end
+            end
+
+            if #activeButtons == 0 then return end
+
+            -- Trier gauche → droite
+            table.sort(activeButtons, function(a, b) return a.posX < b.posX end)
+
+            escapeActive = true
+            logDebug("[AutoEscape] " .. #activeButtons .. " boutons, séquence lancée")
+
+            for i, btn in ipairs(activeButtons) do
+                -- Vérifier que le bouton est toujours là
+                local frame = buttonsFrame:FindFirstChild(btn.name)
+                if frame and frame.Visible then
+                    pressKey(btn.keyCode)
+                    logDebug("[AutoEscape] " .. btn.name .. " (" .. i .. "/" .. #activeButtons .. ")")
+                    if i < #activeButtons then
+                        task.wait(0.15)
+                    end
+                end
+            end
+
+            task.wait(0.3)
+        end)
+
+        -- ✅ Libérer le verrou TOUJOURS, que pcall réussisse ou non
+        if not ok then
+            logError("[AutoEscape] Erreur: " .. tostring(err))
+        end
+        escapeActive = false
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                      AUTO RETRY                            ██
+-- ████████████████████████████████████████████████████████████████
+
+local lastRetryClick = 0
+
+local function clickRetry()
+    local retry = getRetryButton()
+    if not retry or not retry:IsA("GuiObject") then return false end
+    if not retry.Visible then return false end
+    local ap = retry.AbsolutePosition
+    local as = retry.AbsoluteSize
+    if as.X < 5 or as.Y < 5 then return false end
+    local cx = ap.X + as.X / 2
+    local cy = ap.Y + as.Y / 2 + (Settings.RetryOffsetY or 75)
+    local vp = workspace.CurrentCamera.ViewportSize
+    if cx < 0 or cy < 0 or cx > vp.X or cy > vp.Y then return false end
+    pcall(function()
+        VirtualInputManager:SendMouseMoveEvent(cx, cy, game)
+        task.wait(0.03)
+        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+    end)
+    logInfo(string.format("AutoRetry: click (%d, %d)", cx, cy))
+    return true
+end
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        if Settings.AutoRetry then
+            pcall(function()
+                local h, _ = getPlayerHealth()
+                if h and h <= 0 then
+                    local retry = getRetryButton()
+                    if retry then
+                        local now = tick()
+                        if now - lastRetryClick > 0.6 then
+                            lastRetryClick = now
+                            clickRetry()
+                        end
+                    end
+                end
+            end)
+        end
+        task.wait(0.3)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  AUTO RELOAD BLADES                        ██
+-- ████████████████████████████████████████████████████████████████
+
+local lastReload = 0
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        if Settings.AutoReloadBlades then
+            pcall(function()
+                local s = getStats()
+                local needsReload = false
+                local reason = ""
+
+                if s.bladesText then
+                    if s.bladesCount ~= nil then
+                        if s.bladesCount <= 0 then
+                            needsReload = true
+                            reason = "count=0"
+                        end
+                    else
+                        if string.match(s.bladesText, "^%s*0%s*/") then
+                            needsReload = true
+                            reason = "txt match 0/"
+                        end
+                    end
+                else
+                    if s.bladesOffset and s.bladesOffset <= -0.1 then
+                        needsReload = true
+                        reason = "offset=" .. tostring(s.bladesOffset)
+                    end
+                end
+
+                if needsReload then
+                    local now = tick()
+                    if now - lastReload > 2.5 then
+                        lastReload = now
+                        logInfo(string.format("AutoReload: VIDE (%s) → R", reason))
+                        pressKey(Enum.KeyCode.R)
+                    end
+                end
+            end)
+        end
+        task.wait(0.5)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       AUTO REFILL                          ██
+-- ████████████████████████████████████████████████████████████████
+
+local refillLogCount = 0
+local refillNoNeedCount = 0
+local isRefilling = false
+
+task.spawn(function()
+    logInfo("[AutoRefill] Thread démarré")
+
+    while _G.KYO_RUNNING do
+        task.wait(0.4)
+
+        if not Settings.AutoRefill then
+            if refillAlertVisible then hideRefillAlert() end
+            isRefilling = false
+            continue
+        end
+
+        if isRefilling then
+            logDebug("[AutoRefill] Cycle en cours, on attend...")
+            continue
+        end
+
+        pcall(function()
+            local s = getStats()
+
+            refillLogCount = refillLogCount + 1
+            if refillLogCount % 5 == 0 then
+                logDebug(string.format(
+                    "[AutoRefill] RAW: gasText='%s' gasPercent=%s | bladesText='%s' bladesCount=%s",
+                    tostring(s.gasText), tostring(s.gasPercent),
+                    tostring(s.bladesText), tostring(s.bladesCount)
+                ))
+            end
+
+            -- Conditions blades
+            local bladesEmpty = false
+            if s.bladesCount ~= nil and s.bladesCount == 0 then
+                bladesEmpty = true
+            end
+            if s.bladesText and (
+                string.find(s.bladesText, "^0 /") or
+                string.find(s.bladesText, "^0/")
+            ) then
+                bladesEmpty = true
+            end
+
+            -- Conditions gas
+            local gasEmpty = false
+            if s.gasText then
+                local cleaned = tostring(s.gasText):gsub("%%", ""):gsub("%s+", "")
+                local n = tonumber(cleaned)
+                if (n ~= nil and n <= 0) or cleaned == "0" then
+                    gasEmpty = true
+                end
+            end
+            if s.gasPercent ~= nil and s.gasPercent <= 0 then
+                gasEmpty = true
+            end
+
+            local needsRefill = bladesEmpty or gasEmpty
+
+            if refillLogCount % 5 == 0 then
+                logDebug(string.format(
+                    "[AutoRefill] EVAL: bladesEmpty=%s gasEmpty=%s → needs=%s",
+                    tostring(bladesEmpty), tostring(gasEmpty), tostring(needsRefill)
+                ))
+            end
+
+            if not needsRefill then
+                refillNoNeedCount = refillNoNeedCount + 1
+                if refillNoNeedCount >= 6 and refillAlertVisible then
+                    hideRefillAlert()
+                end
+                return
+            end
+
+            refillNoNeedCount = 0
+            logInfo("[AutoRefill] ✅ Besoin détecté ! Lancement du cycle...")
+
+            isRefilling = true
+            task.spawn(function()
+                local success = pcall(function()
+                    local r = findRefill()
+                    if not r then
+                        logError("[AutoRefill] findRefill() retourne nil !")
+                        return
+                    end
+                    logSuccess("[AutoRefill] Part trouvée: " .. r:GetFullName())
+
+                    local pos = getPlayerPosition()
+                    if not pos then
+                        logError("[AutoRefill] getPlayerPosition() retourne nil !")
+                        return
+                    end
+                    logSuccess("[AutoRefill] Position joueur: " .. tostring(pos))
+
+                    showRefillAlert()
+
+                    if not r.Anchored then r.Anchored = true end
+                    r.CFrame = CFrame.new(pos)
+                    logSuccess(string.format("[AutoRefill] 🚀 TP DONE → Part à %s", tostring(r.Position)))
+
+                    -- ✅ Attente cruciale avant appui R
+                    task.wait(0.3)
+
+                    local distCheck = (r.Position - pos).Magnitude
+                    logDebug(string.format("[AutoRefill] Distance part↔joueur: %.2f", distCheck))
+
+                    logInfo("[AutoRefill] ⌨️  Appui R")
+                    pressKey(Enum.KeyCode.R)
+
+                    task.wait(0.5)
+
+                    logInfo("[AutoRefill] ⌨️  Appui R (confirmation)")
+                    pressKey(Enum.KeyCode.R)
+
+                    task.wait(1.5)
+                    logSuccess("[AutoRefill] ✅ Cycle terminé")
+                end)
+
+                if not success then
+                    logError("[AutoRefill] Erreur dans le cycle")
+                end
+
+                -- ✅ Toujours libérer le verrou
+                isRefilling = false
+            end)
+        end)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                         NOCLIP                             ██
+-- ████████████████████████████████████████████████████████████████
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        if Settings.Noclip then
+            pcall(function()
+                local c = getCharacter()
+                if c then
+                    for _, p in pairs(c:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide = false end
+                    end
+                end
+                local c2 = LocalPlayer.Character
+                if c2 then
+                    for _, p in pairs(c2:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide = false end
+                    end
+                end
+            end)
+        end
+        RunService.Stepped:Wait()
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  AUTO HIDE UI (15s)                        ██
+-- ████████████████████████████████████████████████████████████████
+
+local lastActivity = tick()
+UserInputService.InputBegan:Connect(function() lastActivity = tick() end)
+
+task.spawn(function()
+    while _G.KYO_RUNNING do
+        if Settings.AutoHideUI then
+            if tick() - lastActivity > 15 and MainFrame.Visible then
+                logInfo("AutoHideUI: inactivité → minimize")
+                minimize()
+            end
+        end
+        task.wait(1)
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██               TOGGLE GUI (TOUCHE PERSONNALISABLE)          ██
+-- ████████████████████████████████████████████████████████████████
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+    if listeningKey then
+        listeningKey = false
+        local kn = input.KeyCode.Name
+        Settings.ToggleKey = kn
+        KbBtn.Text = "[ " .. kn .. " ]"
+        KbBtn.TextColor3 = Color3.fromRGB(230, 230, 245)
+        saveSettings()
+        logSuccess("Touche toggle: " .. kn)
+        return
+    end
+    if gp then return end
+    if input.KeyCode.Name == (Settings.ToggleKey or "P") then
+        if MainFrame.Visible then minimize() else restore() end
+    end
+end)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                  AUTO ATTACH SCRIPT                        ██
+-- ████████████████████████████████████████████████████████████████
+
+local SCRIPT_URL = "https://raw.githubusercontent.com/TON_USERNAME/TON_REPO/main/Kyo.lua"
+local AUTO_ATTACH_FILE = "Kyo_AutoAttach.lua"
+
+local autoAttachCode = [[
+task.wait(2)
+local ok, err = pcall(function()
+    loadstring(game:HttpGet("]] .. SCRIPT_URL .. [["))()
+end)
+if not ok then
+    warn("[Kyo AutoAttach] Erreur: " .. tostring(err))
+end
+]]
+
+local function enableAutoAttach()
+    if hasFiles then
+        pcall(function()
+            writefile(AUTO_ATTACH_FILE, autoAttachCode)
+            logSuccess("AutoAttach: fichier sauvé → " .. AUTO_ATTACH_FILE)
+        end)
+    end
+    if queue_on_teleport then
+        pcall(function()
+            queue_on_teleport(autoAttachCode)
+            logSuccess("AutoAttach: queue_on_teleport activé")
+        end)
+    else
+        logWarning("AutoAttach: queue_on_teleport NON supporté")
+    end
+end
+
+local function disableAutoAttach()
+    if queue_on_teleport then
+        pcall(function()
+            queue_on_teleport("")
+            logInfo("AutoAttach: désactivé")
+        end)
+    end
+    if hasFiles and isfile and isfile(AUTO_ATTACH_FILE) then
+        pcall(function()
+            if delfile then delfile(AUTO_ATTACH_FILE) end
+        end)
+    end
+end
+
+-- Si activé au démarrage
+if Settings.AutoAttach then
+    task.spawn(function()
+        task.wait(1)
+        enableAutoAttach()
+    end)
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                NOTIFICATION SYSTÈME                        ██
+-- ████████████████████████████████████████████████████████████████
+
+-- ✅ BUG 4 CORRIGÉ : showNotif définie avant d'être appelée
+local NotifGui = Instance.new("ScreenGui")
+NotifGui.Name = "Kyo_Notif"; NotifGui.ResetOnSpawn = false
+NotifGui.IgnoreGuiInset = true; NotifGui.DisplayOrder = 9997; NotifGui.Parent = CoreGui
+
+local function showNotif(text, color)
+    local notif = Instance.new("Frame", NotifGui)
+    notif.Size = UDim2.new(0, 340, 0, 50)
+    notif.Position = UDim2.new(1, 10, 1, -70)
+    notif.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    notif.BorderSizePixel = 0
+    local nc = Instance.new("UICorner", notif); nc.CornerRadius = UDim.new(0, 10)
+    local ns = Instance.new("UIStroke", notif)
+    ns.Color = color or Color3.fromRGB(140, 90, 230); ns.Thickness = 1.5
+    local bar = Instance.new("Frame", notif)
+    bar.Size = UDim2.new(0, 3, 0.7, 0); bar.Position = UDim2.new(0, 8, 0.15, 0)
+    bar.BackgroundColor3 = color or Color3.fromRGB(140, 90, 230); bar.BorderSizePixel = 0
+    local bc = Instance.new("UICorner", bar); bc.CornerRadius = UDim.new(1, 0)
+    local lbl = Instance.new("TextLabel", notif)
+    lbl.Size = UDim2.new(1, -25, 1, 0); lbl.Position = UDim2.new(0, 20, 0, 0)
+    lbl.BackgroundTransparency = 1; lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(230, 230, 245); lbl.TextSize = 13
+    lbl.Font = Enum.Font.GothamMedium; lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.TextWrapped = true
+
+    -- Slide in
+    TweenService:Create(notif, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Position = UDim2.new(1, -350, 1, -70)}):Play()
+
+    -- Slide out après 3s
+    task.delay(3, function()
+        local tw = TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+            {Position = UDim2.new(1, 10, 1, -70)})
+        tw:Play()
+        tw.Completed:Connect(function() pcall(function() notif:Destroy() end) end)
+    end)
+end
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                       DESTROY                              ██
+-- ████████████████████████████████████████████████████████████████
+
+local function destroyAll()
+    logInfo("Destruction Kyo...")
+    _G.KYO_RUNNING = false
+    local tf = workspace:FindFirstChild("Titans")
+    if tf then for _, t in pairs(tf:GetChildren()) do removeESP(t) end end
+    trackedTitans = {}
+    if injConn then injConn:Disconnect() end
+    if numConn then numConn:Disconnect() end
+    saveSettings()
+    local tw = TweenService:Create(MainFrame,
+        TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+        {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+    tw:Play()
+    tw.Completed:Connect(function()
+        pcall(function() ScreenGui:Destroy() end)
+        pcall(function() MiniGui:Destroy() end)
+        pcall(function() CursorGui:Destroy() end)
+        pcall(function() AlertsGui:Destroy() end)
+        pcall(function() NotifGui:Destroy() end)
+        logSuccess("Kyo détruit proprement")
+    end)
+end
+
+CloseBtn.MouseButton1Click:Connect(destroyAll)
+DestroyButton.MouseButton1Click:Connect(destroyAll)
+
+-- ████████████████████████████████████████████████████████████████
+-- ██                     BOOT FINAL                             ██
+-- ████████████████████████████████████████████████████████████████
+
+showNotif("✨ Kyo chargé ! Touche [" .. (Settings.ToggleKey or "P") .. "] pour toggle",
+    Color3.fromRGB(140, 90, 230))
+
+log("BOOT", "═══════════════════════════════════════════")
+logSuccess("Kyo chargé !")
+logInfo("Touche toggle: " .. (Settings.ToggleKey or "P"))
+logInfo("Va dans 🔧 Debug pour tester les fonctionnalités")
+log("BOOT", "═══════════════════════════════════════════")
